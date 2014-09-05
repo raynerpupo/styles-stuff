@@ -1,0 +1,2 @@
+-QPushButton: full
+-QGroupBox: full
