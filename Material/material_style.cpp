@@ -47,18 +47,18 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         const QStyleOptionGroupBox *groupBox = qstyleoption_cast<const QStyleOptionGroupBox *>(option);
         QRect textRect = fm.boundingRect(groupBox->text);
         textRect.moveTo(0, 0);
-        QPixmap bPix(":/group_box_bottom.png");
+        QPixmap bPix(":/images/images/group_box_bottom.png");
         int hExtra = 0;
         int indW = 0;
         QPixmap tPix;
         int glue = 0;
         if (groupBox->subControls & SC_GroupBoxLabel) {
             hExtra = 2 * GROUP_BOX_TEXT_V_MARGIN;
-            tPix = QPixmap(":/group_box_top.png");
+            tPix = QPixmap(":/images/images/group_box_top.png");
         }
         else if (groupBox->subControls & SC_GroupBoxCheckBox) {
             hExtra = 2 * GROUP_BOX_TEXT_V_MARGIN;
-            tPix = QPixmap(":/group_box_top.png");
+            tPix = QPixmap(":/images/images/group_box_top.png");
             indW = pixelMetric(PM_IndicatorWidth, option, widget);
         }
         else {
@@ -88,25 +88,34 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         indRect.moveTo(option->rect.topLeft());
 //        qDebug() << "indRect" << indRect;
         if (checkBox->state & QStyle::State_Off) {
-            QPixmap pxm(":/check_box_off.png");
+            QPixmap pxm(":/images/images/check_box_state0.png");
             qDrawBorderPixmap(painter, indRect, QMargins(2, 2, 2, 2), pxm);
         }
         else if (checkBox->state & QStyle::State_On) {
-            QPixmap pxm(":/check_box_on.png");
+            QPixmap pxm(":/images/images/check_box_state1.png");
             qDrawBorderPixmap(painter, indRect, QMargins(3, 3, 3, 3), pxm);
         }
         else {
-            QPixmap pxm(":/check_box_no_change.png");
+            QPixmap pxm(":/images/images/check_box_state2.png");
             painter->drawPixmap(indRect.topLeft(), pxm);
         }
         break;
     }
     case PE_IndicatorRadioButton: {
-//        painter->setRenderHint(QPainter::Antialiasing);
-        ///finish-him
-        painter->setPen(QPen(QColor(160,160,160), 1));
-        qDebug() << option->rect;
-        painter->drawEllipse(option->rect.adjusted(1, 1, -1, -1));
+////        painter->setRenderHint(QPainter::Antialiasing);
+//        ///finish-him
+//        painter->setPen(QPen(QColor(160,160,160), 1));
+//        qDebug() << option->rect;
+//        painter->drawEllipse(option->rect.adjusted(1, 1, -1, -1));
+        const QStyleOptionButton *btn = qstyleoption_cast<const QStyleOptionButton *>(option);
+        if (btn) {
+            bool checked = btn->state & QStyle::State_On;
+            QString iconRes = checked ? ":/images/images/qradiobutton_chacked.png" :
+                                        ":/images/images/qradiobutton.png";
+            QIcon icon(iconRes);
+            QIcon::State st = btn->state & QStyle::State_Enabled ? QIcon::On : QIcon::Off;
+            icon.paint(painter, btn->rect, Qt::AlignCenter, QIcon::Normal, st);
+        }
         break;
     }
     case PE_FrameFocusRect: {
@@ -116,7 +125,21 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         painter->drawRoundedRect(option->rect.adjusted(0, 0, -1, -1), 3, 3);
         break;
     }
+    case PE_Frame:
+    case PE_FrameMenu:
+        if (const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(option)) {
+            if (elem == PE_FrameMenu || (frame->state & State_Sunken) || (frame->state & State_Raised)) {
+//                qDebug() << "frame aaaaaaaaaaa";
+                QPixmap px(":/images/images/frame.png");
+                qDrawBorderPixmap(painter, frame->rect, QMargins(4, 4, 4, 4), px);
+            } else {
+//                qDebug() << "frame bbbbbbbbbbb";
+                qDrawPlainRect(painter, frame->rect, QColor(160, 160, 160), frame->lineWidth);
+            }
+            break;
+        }
     default:
+//        qDebug() << elem;
         QCommonStyle::drawPrimitive(elem, option, painter, widget);
         break;
     }
@@ -267,7 +290,7 @@ QRect MaterialStyle::subControlRect(QStyle::ComplexControl cc, const QStyleOptio
 //                stolen += 2; //top border
                 QRect cRect = rect.adjusted(3, stolen, -3, -3);
 
-                qDebug() << "conten rect" << cRect;
+//                qDebug() << "conten rect" << cRect;
                 return cRect;
 //                qDebug() << "th indh" << textHeight << indHeight;
 
@@ -500,7 +523,7 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
             grad.setColorAt(1.0, QColor(64, 148, 208));
             textColor.setNamedColor("White");
             textShadowColor.setRgb(0, 0, 0, 25 * 255 / 100);
-            borderPxm = QPixmap(":/push_button_normal.png");
+            borderPxm = QPixmap(":/images/images/push_button_normal.png");
             drawTextShadow = true;
         }
         else if (btn->state & (State_MouseOver)) {
@@ -510,7 +533,7 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
             drawGlowLine = false;
             textColor.setRgb(7, 30, 82);
             textShadowColor.setRgb(255, 255, 255, 40 * 255 / 100);
-            borderPxm = QPixmap(":/push_button_hover.png");
+            borderPxm = QPixmap(":/images/images/push_button_hover.png");
             drawTextShadow = true;
         }
         else {
@@ -519,7 +542,7 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
             grad.setColorAt(1.0, QColor(7, 58, 147));
             textColor.setNamedColor("White");
             textShadowColor.setRgb(0, 0, 0, 25);
-            borderPxm = QPixmap(":/push_button_normal.png");
+            borderPxm = QPixmap(":/images/images/push_button_normal.png");
             drawTextShadow = true;
         }
         painter->setBrush(grad);
@@ -527,7 +550,7 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
         painter->drawPath(roundRectPath(btnRect.adjusted(1, 1, 0, 0)));
     }
     else {
-        borderPxm = QPixmap(":/push_button_disabled.png");
+        borderPxm = QPixmap(":/images/images/push_button_disabled.png");
         textColor.setRgb(171, 171, 171);
     }
 
@@ -753,5 +776,5 @@ QPixmap MaterialStyle::testPxFactory() const
         "+++++++++++++++"
     };
 //    return QPixmap((const char **)px);
-    return QPixmap(":/group_box_top.png");
+    return QPixmap(":/images/images/group_box_top.png");
 }
