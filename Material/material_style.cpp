@@ -22,12 +22,16 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QGroupBox>
+#include <QResource>
+#include <QFontDatabase>
+#include <QDirIterator>
 //#include <QStyleOptionTabV3>
 
 MaterialStyle::MaterialStyle()
 {
     setObjectName(QLatin1String("Fusion"));
 
+    loadCustomFonts();
     groupBoxFont = QFont("Myriad Pro", 10);
     groupBoxFont.setBold(true);
 //    groupBoxFont.setStyleStrategy(QFont::NoAntialias);
@@ -798,8 +802,9 @@ void MaterialStyle::polish(QWidget *widget)
 
 void MaterialStyle::polish(QPalette &pal)
 {
-//    qDebug() << "Polish palette";
+    qDebug() << "Polish palette" << pal.window().color();
     pal.setBrush(QPalette::Window, QColor(244, 244, 244));       //window background
+    qDebug() << "Polish palette2" << pal.window().color();
     pal.setBrush(QPalette::Light, QColor(64, 148, 208));         //pushbutton normal start gradient
     pal.setBrush(QPalette::Dark, QColor(7, 58, 147));            //pushbutton normal end gradient
     pal.setBrush(QPalette::Midlight, QColor(132, 191, 247));     //pushbutton hover start gradient
@@ -972,9 +977,9 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
         pxW = pxm.width();
         pxH = pxm.height();
     }
-    QFont font("Myriad", 10);
-    QFontMetrics fm(font);
-    painter->setFont(font);
+//    QFont font("Myriad", 10);
+    QFontMetrics fm(regularFont);
+    painter->setFont(regularFont);
     QRect textRect = fm.boundingRect(btn->text);
     int wReq = pxW + BUTTON_ICON_TEXT_SPACING + textRect.width() + 4;
     int iconX = 0;
@@ -1189,6 +1194,15 @@ void MaterialStyle::tabLayout(const QStyleOptionTabV3 *opt, const QWidget *widge
         tr = visualRect(opt->direction, opt->rect, tr);
 
     *textRect = tr;
+}
+
+void MaterialStyle::loadCustomFonts()
+{
+    QDirIterator it(":/fonts/Fonts/", QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+//        qDebug() << it.next();
+        QFontDatabase::addApplicationFont(it.next());
+    }
 }
 
 QPixmap MaterialStyle::testPxFactory() const

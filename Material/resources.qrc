@@ -25,4 +25,15 @@
         <file>images/tab_sunken_rounded.png</file>
         <file>images/tab_normal_rounded.png</file>
     </qresource>
+    <qresource prefix="/fonts">
+        <file>Fonts/MYRIADPRO-BOLD.OTF</file>
+        <file>Fonts/MYRIADPRO-BOLDCOND.OTF</file>
+        <file>Fonts/MYRIADPRO-BOLDCONDIT.OTF</file>
+        <file>Fonts/MYRIADPRO-BOLDIT.OTF</file>
+        <file>Fonts/MYRIADPRO-COND.OTF</file>
+        <file>Fonts/MYRIADPRO-CONDIT.OTF</file>
+        <file>Fonts/MYRIADPRO-REGULAR.OTF</file>
+        <file>Fonts/MYRIADPRO-SEMIBOLD.OTF</file>
+        <file>Fonts/MYRIADPRO-SEMIBOLDIT.OTF</file>
+    </qresource>
 </RCC>

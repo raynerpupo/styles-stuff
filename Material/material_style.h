@@ -67,6 +67,8 @@ private:
 
     void tabLayout(const QStyleOptionTabV3 *opt, const QWidget *widget, QRect *textRect, QRect *pixmapRect) const;
 
+    void loadCustomFonts();
+
     //testing
     QPixmap testPxFactory() const;
 
