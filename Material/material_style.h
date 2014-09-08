@@ -20,10 +20,13 @@
 #include "constants.h"
 
 #include <QCommonStyle>
+#include <QStyleOptionTabV3>
 #include <QFont>
 
 class QStyleOptionButton;
 class QStyleOptionGroupBox;
+class QStyleOptionSlider;
+//class QStyleOptionTabV3;
 
 class MaterialStyle : public QCommonStyle
 {
@@ -41,7 +44,9 @@ public:
                          SubControl sc, const QWidget *widget) const;
     int pixelMetric(PixelMetric metric, const QStyleOption *option = 0, const QWidget *widget = 0) const;
     void polish(QWidget *widget);
+    void polish(QPalette &pal);
     QRect subElementRect(SubElement subElem, const QStyleOption *opt, const QWidget *widget) const;
+    int styleHint(StyleHint sh, const QStyleOption *opt, const QWidget *w, QStyleHintReturn *shret = 0) const;
 signals:
 
 public slots:
@@ -58,7 +63,9 @@ private:
 
     //complex controls painting
     void drawGroupBox(const QStyleOptionGroupBox *groupBox, QPainter *painter, const QWidget *widget) const;
+    void drawSlider(const QStyleOptionSlider *slider, QPainter *painter, const QWidget *widget) const;
 
+    void tabLayout(const QStyleOptionTabV3 *opt, const QWidget *widget, QRect *textRect, QRect *pixmapRect) const;
 
     //testing
     QPixmap testPxFactory() const;

@@ -17,5 +17,12 @@
         <file>images/slider_button_hover.png</file>
         <file>images/frame.png</file>
         <file>images/slider_button_sunken.png</file>
+        <file>images/tabwidget_frame.png</file>
+        <file>images/tab_hover_squared.png</file>
+        <file>images/tab_normal_squared.png</file>
+        <file>images/tab_sunken_squared.png</file>
+        <file>images/tab_hover_rounded.png</file>
+        <file>images/tab_sunken_rounded.png</file>
+        <file>images/tab_normal_rounded.png</file>
     </qresource>
 </RCC>

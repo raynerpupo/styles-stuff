@@ -1,2 +1,10 @@
 -QPushButton: full
 -QGroupBox: full
+-QFrame: full
+
+
+
+
+
+TODO
+hacer un frame pal focus de los widgets con radio 4
