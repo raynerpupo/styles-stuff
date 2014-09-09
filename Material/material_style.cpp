@@ -36,7 +36,7 @@ MaterialStyle::MaterialStyle()
     groupBoxFont.setBold(true);
 //    groupBoxFont.setStyleStrategy(QFont::NoAntialias);
 
-    regularFont = QFont("Myriad Pro", 9);
+    regularFont = QFont("Myriad Pro", 10);
 //    regularFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.7);
 //    regularFont.setWeight(5);
 //    regularFont.setPixelSize(2);
@@ -74,24 +74,22 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
             glue = 4;
         }
         int yDiv = hExtra + qMax(textRect.height(), indW) + glue;
-//        qDebug() << "tH from primitive" <<textRect.height();
         QRect topFrame(0, 0, groupBox->rect.width(), yDiv);
-
-        qDrawBorderPixmap(painter, topFrame, QMargins(4, 4, 4, 4), tPix);
-
         QRect bottomFrame(0, yDiv, groupBox->rect.width(), groupBox->rect.height() - yDiv - 1);
-//        qDebug() << "bottom frame" << bottomFrame;
-        qDrawBorderPixmap(painter, bottomFrame, QMargins(4, 4, 4, 4), bPix);
+        if (groupBox->subControls & SC_GroupBoxLabel || groupBox->subControls & SC_GroupBoxCheckBox) {
+            qDrawBorderPixmap(painter, topFrame, QMargins(4, 4, 4, 4), tPix);
+            qDrawBorderPixmap(painter, bottomFrame, QMargins(4, 4, 4, 4), bPix);
+        }
+        else {
+            QPixmap px(":/images/images/frame.png");
+            qDrawBorderPixmap(painter, groupBox->rect, QMargins(4, 4, 4, 4), px);
+        }
         break;
     }
     case PE_IndicatorCheckBox: {
         const QStyleOptionButton *checkBox = qstyleoption_cast<const QStyleOptionButton *>(option);
-//        qDebug() << "cbrect" << checkBox->rect;
-
-//        qDebug() << "opt rect" << option->rect;
         QRect indRect = subElementRect(SE_CheckBoxIndicator, option, widget);
         indRect.moveTo(option->rect.topLeft());
-//        qDebug() << "indRect" << indRect;
         if (checkBox->state & QStyle::State_Off) {
             QPixmap pxm(":/images/images/check_box_state0.png");
             qDrawBorderPixmap(painter, indRect, QMargins(2, 2, 2, 2), pxm);
@@ -107,11 +105,6 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         break;
     }
     case PE_IndicatorRadioButton: {
-////        painter->setRenderHint(QPainter::Antialiasing);
-//        ///finish-him
-//        painter->setPen(QPen(QColor(160,160,160), 1));
-//        qDebug() << option->rect;
-//        painter->drawEllipse(option->rect.adjusted(1, 1, -1, -1));
         const QStyleOptionButton *btn = qstyleoption_cast<const QStyleOptionButton *>(option);
         if (btn) {
             bool checked = btn->state & QStyle::State_On;
@@ -136,11 +129,9 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
     case PE_FrameMenu:
         if (const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(option)) {
             if (elem == PE_FrameMenu || (frame->state & State_Sunken) || (frame->state & State_Raised)) {
-//                qDebug() << "frame aaaaaaaaaaa";
                 QPixmap px(":/images/images/frame.png");
                 qDrawBorderPixmap(painter, frame->rect, QMargins(4, 4, 4, 4), px);
             } else {
-//                qDebug() << "frame bbbbbbbbbbb";
                 qDrawPlainRect(painter, frame->rect, COLOR_FRAME_BORDER, frame->lineWidth);
             }
             break;
@@ -190,8 +181,6 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         break ;
     case PE_IndicatorTabClose: {
         QStyleHintReturn *hr = 0;
-//        qDebug() << "INDTABCLOSE" << option->rect;
-        //:/images/images/tab_close.png
         QPixmap px(":/images/images/tab_close.png");
         QCommonStyle::drawItemPixmap(painter, option->rect, Qt::AlignCenter, px);
         if (option->state & State_MouseOver) {
@@ -201,7 +190,6 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         break;
     }
     default:
-//        qDebug() << elem;
         QCommonStyle::drawPrimitive(elem, option, painter, widget);
         break;
     }
@@ -209,25 +197,12 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
 
 void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *option, QPainter *painter, const QWidget *widget) const
 {
-//    QCommonStyle::drawControl(ce, option, painter, widget);
-//    qDebug() << Q_FUNC_INFO << option->rect;
     switch (ce) {
     case QStyle::CE_PushButton:
         if (const QStyleOptionButton *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
             drawPushButton(btn, painter, widget);
         }
         break;
-//    case QStyle::CE_CheckBoxLabel: {
-////        qDebug() << "draw CE_CheckBoxLabel";
-//        QFont font = regularFont;
-////        painter->setRenderHint(QPainter::TextAntialiasing);
-//        const QStyleOptionButton *check = qstyleoption_cast<const QStyleOptionButton *>(option);
-////        font.setStyleStrategy(QFont::NoAntialias);
-//        painter->setFont(font);
-//        painter->setPen(QColor(61, 61, 61));
-//        painter->drawText(check->rect, check->text);
-//        break;
-//    }
     case QStyle::CE_RadioButton:
     case QStyle::CE_CheckBox: {
         if (const QStyleOptionButton *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
@@ -248,15 +223,6 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
                 drawPrimitive(PE_FrameFocusRect, &fropt, painter, widget);
             }
         }
-////        qDebug() << "draw CE_CheckBox for indicator";
-//        const QStyleOptionButton *check = qstyleoption_cast<const QStyleOptionButton *>(option);
-//        //draw primitive indicator
-//        drawPrimitive(PE_IndicatorCheckBox, check, painter, widget);
-//        //draw control CE_CheckBoxLabel
-//        QStyleOptionButton subOpt = *check;
-//        subOpt.rect = subElementRect(SE_CheckBoxContents, check, widget);
-//        drawControl(CE_CheckBoxLabel, &subOpt, painter, widget);
-//        break;
     }
         break;
     case CE_RadioButtonLabel:
@@ -380,35 +346,47 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
                 }
             }
 
-//            painter->fillRect(rect, QColor(0, 255, 0, 100));
+//            painter->setPen(Qt::red);
+//            painter->setBrush(QColor(0, 0, 255, 100));
+//            painter->drawRect(rect.adjusted(0, 0, -1, 0));
             QPixmap px1(px1Str);
+            int test = 0;
+//            painter->setRenderHint(QPainter::Antialiasing);
             if (px2Str.isEmpty()) { //una intermedia
-                qDrawBorderPixmap(painter, rect.adjusted(-1, 0, -1, 0), QMargins(4, 4, 4, 4), px1);
+                qDrawBorderPixmap(painter, rect.adjusted(-1, test, -1, 0), QMargins(4, 4, 4, 4), px1);
+//                painter->drawPixmap(0, 0, px1);
             }
             else {
                 QPixmap px2(px2Str);
 //                QRect lRect = rect.adjusted(0, 0, -rect.width() / 2, 0);
                 int cosmeticOffset = 1;
-//                if(firstTab)
-//                qDebug() << "left" << lRect;
-                qDrawBorderPixmap(painter, rect.adjusted(-cosmeticOffset, 0, -rect.width() / 2, 0), QMargins(4, 4, 4, 4), px1);
+                qDrawBorderPixmap(painter, rect.adjusted(-cosmeticOffset, test, -rect.width() / 2, 0), QMargins(4, 4, 4, 4), px1);
                 if (!px2Str.contains("squared", Qt::CaseInsensitive)) { //la ultima
-//                    qDebug() << "border tab" << rect;
                     px2 = QPixmap::fromImage(QImage(px2Str).mirrored(true, false));
-//                    QRect rRect = rect.adjusted(rect.width() / 2, 0, /*-rect.width() / 2*/0, 0);
-//                    qDebug() << "right" << rRect;
-                    qDrawBorderPixmap(painter, rect.adjusted(rect.width() / 2, 0, -1, 0),
+                    qDrawBorderPixmap(painter, rect.adjusted(rect.width() / 2, test, -1, 0),
                                       QMargins(4, 4, 4, 4), px2);
                 }
                 else {
-                    qDrawBorderPixmap(painter, rect.adjusted(rect.width() / 2, 0, -1, 0),
+                    qDrawBorderPixmap(painter, rect.adjusted(rect.width() / 2, test, -1, 0),
                                       QMargins(4, 4, 4, 4), px2);
                 }
             }
 
+//            //###########temporal workaround
+//            if (tab->shape == QTabBar::RoundedEast) {
+//                qDebug() << "siiiiiiiiiiiii";
+//                painter->setPen(QPen(QColor(255, 0, 0, 50), 5));
+//                QPoint p1 = rect.topLeft();
+//                QPoint p2 = rect.topRight();
+//                p1.rx() += 4;
+////                p1.ry() += 1;
+//                p2.rx() -= 4;
+////                p2.ry() += 1;
+////                painter->drawLine(p1, p2);
+//            }
+
             //draw the underline
             QColor uLineColor = selected ? COLOR_TAB_SELECTED_UL : COLOR_TAB_NORMAL_UL;
-//            qDebug() << selected << uLineColor;
             painter->setPen(QPen(uLineColor, 2));
             QPoint p1 = rect.bottomLeft();
             p1.ry() -= 1;
@@ -554,7 +532,6 @@ QRect MaterialStyle::subControlRect(QStyle::ComplexControl cc, const QStyleOptio
 //    QRect rect;
     switch (cc) {
     case CC_GroupBox: {
-//        qDebug() << "SC_GroupBoxLabel" << cc << sc;
         if (const QStyleOptionGroupBox *groupBox = qstyleoption_cast<const QStyleOptionGroupBox *>(opt)) {
             rect = opt->rect;
             int indWidth = groupBox->subControls & SC_GroupBoxCheckBox ?
@@ -563,67 +540,46 @@ QRect MaterialStyle::subControlRect(QStyle::ComplexControl cc, const QStyleOptio
 
             QFontMetrics fm(groupBoxFont);
             QRect textRect = fm.boundingRect(groupBox->text);
-            int stolen = 0;
+            int stolenByText = 0;
+            int stolenByIcon = 0;
             int textHeight = 0;
             int indHeight = 0;
             if (groupBox->subControls & SC_GroupBoxLabel) {
                 QFontMetrics fm(groupBoxFont);
                 QRect textRect = fm.boundingRect(groupBox->text);
                 textHeight = textRect.height();
-//                qDebug() << "th from screct" << textHeight;
-                stolen += 2 * GROUP_BOX_TEXT_V_MARGIN;
-                stolen += GROUP_BOX_UNDERLINE_WIDTH;
+                stolenByText += 2 * GROUP_BOX_TEXT_V_MARGIN + textHeight + GROUP_BOX_UNDERLINE_WIDTH;
             }
             else if (groupBox->subControls & SC_GroupBoxCheckBox) {
                 indHeight = indWidth;
-                stolen += 2 * GROUP_BOX_TEXT_V_MARGIN;
+                stolenByIcon += 2 * GROUP_BOX_TEXT_V_MARGIN + indHeight;
 //                    stolen += GROUP_BOX_UNDERLINE_WIDTH;
             }
-            stolen += qMax(textHeight, indHeight);
+            int headerHeight = qMax(stolenByText, stolenByIcon);
 
             if (sc == SC_GroupBoxLabel) {
-
-//                qDebug() << "req gb text rect";
                 int space = pixelMetric(PM_CheckBoxLabelSpacing, opt, widget);
-
                 textRect.moveTo(GROUP_BOX_TEXT_H_MARGIN + indWidth + space, GROUP_BOX_TEXT_V_MARGIN);
-//                qDebug() << "text rectt" << textRect;
                 return textRect;
             }
 
             else if (sc == SC_GroupBoxFrame) {
-//                qDebug() << "req gb frame rect";
                 return rect;
             }
             else if (sc == SC_GroupBoxContents) {
 //                stolen += 2; //top border
-                QRect cRect = rect.adjusted(3, stolen, -3, -3);
-
-//                qDebug() << "conten rect" << cRect;
+                QRect cRect = rect.adjusted(3, headerHeight, -3, -3);
                 return cRect;
-//                qDebug() << "th indh" << textHeight << indHeight;
-
-
-
-////                qDebug() << "req gb contents rect";
-//                QFontMetrics fm(groupBoxFont);
-//                QRect textRect = fm.boundingRect(groupBox->text);
-//                int contentY = textRect.height() + 2 * GROUP_BOX_TEXT_V_MARGIN + GROUP_BOX_UNDERLINE_WIDTH;
-////                qDebug() << "contentY" << contentY << rect;
-//                return rect.adjusted(2, contentY, -3, -3 );
             }
             else if (sc == SC_GroupBoxCheckBox) {
-//                qDebug() << "SC_GroupBoxCheckBox";
-                QRect iRect(GROUP_BOX_TEXT_H_MARGIN, (stolen - indWidth) / 2,
+                QRect iRect(GROUP_BOX_TEXT_H_MARGIN, (headerHeight - GROUP_BOX_UNDERLINE_WIDTH - indWidth) / 2,
                             indWidth, indWidth);
-//                qDebug() << "irect" << iRect;
                 return iRect;
             }
         }
         break;
     }
     case CC_Slider:
-//        qDebug() << "#######" << rect;
         if (const QStyleOptionSlider *slider = qstyleoption_cast<const QStyleOptionSlider *>(opt)) {
 //            int tickSize = proxy()->pixelMetric(PM_SliderTickmarkOffset, opt, widget);
             switch (sc) {
@@ -649,7 +605,6 @@ QRect MaterialStyle::subControlRect(QStyle::ComplexControl cc, const QStyleOptio
 //                        centerX -= tickSize;
                     rect.moveLeft(rx);
                 }
-//                qDebug() << "slider handle" << rect;
             }
                 break;
             case SC_SliderGroove: {
@@ -669,9 +624,6 @@ QRect MaterialStyle::subControlRect(QStyle::ComplexControl cc, const QStyleOptio
 //                    if (slider->tickPosition & QSlider::TicksBelow)
 //                        grooveCenter.rx() -= tickSize;
                 }
-//                rect.moveCenter(grooveCenter);
-//                qDebug() << "slider groove" << rect;
-//                rect.adjust(1, 1, -1, -1);
                 break;
             }
             default:
@@ -802,9 +754,7 @@ void MaterialStyle::polish(QWidget *widget)
 
 void MaterialStyle::polish(QPalette &pal)
 {
-    qDebug() << "Polish palette" << pal.window().color();
     pal.setBrush(QPalette::Window, QColor(244, 244, 244));       //window background
-    qDebug() << "Polish palette2" << pal.window().color();
     pal.setBrush(QPalette::Light, QColor(64, 148, 208));         //pushbutton normal start gradient
     pal.setBrush(QPalette::Dark, QColor(7, 58, 147));            //pushbutton normal end gradient
     pal.setBrush(QPalette::Midlight, QColor(132, 191, 247));     //pushbutton hover start gradient
@@ -814,6 +764,7 @@ void MaterialStyle::polish(QPalette &pal)
     pal.setBrush(QPalette::Shadow, QColor(0, 0, 0));             //shadow
     pal.setBrush(QPalette::BrightText, QColor(7, 30, 82));       //pushbutton hover text color
     pal.setBrush(QPalette::Disabled, QPalette::ButtonText, QColor(171, 171, 171));
+    pal.setBrush(QPalette::WindowText, COLOR_WINDOW_TEXT);
 }
 
 QRect MaterialStyle::subElementRect(QStyle::SubElement subElem, const QStyleOption *opt, const QWidget *widget) const
@@ -916,7 +867,6 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
             drawPrimitive(PE_FrameFocusRect, btn, painter, widget);
         }
         if (btn->state & (State_Sunken | State_On)) {
-            //        qDebug() << "presed";
             grad.setColorAt(0.0, btn->palette.color(QPalette::Dark));
             grad.setColorAt(1.0, btn->palette.color(QPalette::Light));
             textColor = btn->palette.color(QPalette::ButtonText);
@@ -927,7 +877,6 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
             drawTextShadow = true;
         }
         else if (btn->state & (State_MouseOver)) {
-            //        qDebug() << "over";
             grad.setColorAt(0.0, btn->palette.midlight().color());
             grad.setColorAt(1.0, btn->palette.mid().color());
             drawGlowLine = false;
@@ -938,7 +887,6 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
             drawTextShadow = true;
         }
         else {
-            //        qDebug() << "normal";
             grad.setColorAt(0.0, btn->palette.color(QPalette::Light));
             grad.setColorAt(1.0, btn->palette.color(QPalette::Dark));
             textColor = btn->palette.color(QPalette::ButtonText);
@@ -999,32 +947,32 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
     textRect.setWidth(btn->rect.width() - 4);
     if (drawTextShadow) {
         painter->setPen(textShadowColor);
-        painter->drawText(textRect.adjusted(1, 1, 2, 2), btn->text);
+        painter->drawText(textRect.adjusted(1, 3, 2, 2), btn->text);
     }
     painter->setPen(textColor);
-    painter->drawText(textRect.adjusted(0, 0, 1, 1), btn->text);
+    painter->drawText(textRect.adjusted(0, 2, 1, 1), btn->text);
 
 }
 
 void MaterialStyle::drawGroupBox(const QStyleOptionGroupBox *groupBox, QPainter *painter, const QWidget *widget) const
 {
 
-    QFontMetrics fm(groupBoxFont);
-    QRect textRect = fm.boundingRect(groupBox->text);
+//    QFontMetrics fm(groupBoxFont);
+//    QRect textRect = fm.boundingRect(groupBox->text);
     //Draw the frame
     if (groupBox->subControls & QStyle::SC_GroupBoxFrame) {
         drawPrimitive(PE_FrameGroupBox, groupBox, painter, widget);
     }
 
     //Draw the indicator
+    QRect indRect = subControlRect(CC_GroupBox, groupBox, SC_GroupBoxCheckBox, widget);
     if (groupBox->subControls & QStyle::SC_GroupBoxCheckBox) {
 //        QRect indRect = subControlRect(CC_GroupBox, groupBox, SC_GroupBoxCheckBox, widget);
 //        QRect textRec
         QStyleOptionButton chk;
         chk.QStyleOption::operator=(*groupBox);
 //        chk.rect = QRect(0, 0, groupBox->rect.width(), textRect.height() + 2 * GROUP_BOX_TEXT_V_MARGIN);
-        chk.rect = subControlRect(CC_GroupBox, groupBox, SC_GroupBoxCheckBox, widget);
-//        qDebug() << "chk.rect" << chk.rect;
+        chk.rect = indRect;
 //        painter->translate(4, 0);
         drawPrimitive(PE_IndicatorCheckBox, &chk, painter, widget);
     }
@@ -1040,11 +988,8 @@ void MaterialStyle::drawGroupBox(const QStyleOptionGroupBox *groupBox, QPainter 
         QFontMetrics fm(groupBoxFont);
         QRect textRect = fm.boundingRect(groupBox->text);
         textRect.moveTo(0, 0);
-//        qDebug() << "textRect" << textRect;
         int yOffset = GROUP_BOX_TEXT_V_MARGIN /*+ textRect.height()*/;
         QRect okRect = textRect.adjusted(xOffset, yOffset, xOffset, yOffset);
-//        qDebug() << "x-y" << xOffset << yOffset;
-//        qDebug() << "draw text" << groupBox->text << "on" << okRect;
         painter->setFont(groupBoxFont);
         painter->drawText(okRect, groupBox->text);
 
@@ -1061,6 +1006,11 @@ void MaterialStyle::drawGroupBox(const QStyleOptionGroupBox *groupBox, QPainter 
         painter->setPen(QPen(COLOR_FRAME_BORDER, GROUP_BOX_UNDERLINE_WIDTH));
         painter->drawLine(okRect.width() + okRect.x(), underlineY, groupBox->rect.width(), underlineY);
     }
+    else if (groupBox->subControls & QStyle::SC_GroupBoxCheckBox) {
+        painter->setPen(QPen(COLOR_FRAME_BORDER, 2));
+        int decY = indRect.height() + GROUP_BOX_UNDERLINE_WIDTH;
+        painter->drawLine(0, decY, groupBox->rect.width(), decY);
+    }
 
 }
 
@@ -1071,11 +1021,8 @@ void MaterialStyle::drawSlider(const QStyleOptionSlider *slider, QPainter *paint
     QRect handle = subControlRect(CC_Slider, slider, SC_SliderHandle, widget);
 
     if (slider->state & State_HasFocus && slider->state & State_KeyboardFocusChange) {
-//        qDebug() << "sldfoc";
         drawPrimitive(PE_FrameFocusRect, slider, painter, widget);
     }
-
-//    qDebug() << "draw slider" << groove << handle;
 
     bool horizontal = slider->orientation == Qt::Horizontal;
     bool showTicks = !(slider->tickPosition & QSlider::NoTicks);
@@ -1097,8 +1044,8 @@ void MaterialStyle::drawSlider(const QStyleOptionSlider *slider, QPainter *paint
         }
     }
     else {
-        gradient.setStart(0, 0);
-        gradient.setFinalStop(0, groove.bottom());
+        gradient.setStart(0, groove.bottom());
+        gradient.setFinalStop(0, 0);
         if (slider->upsideDown) {
             clipRect.setY(handle.y() + handle.height() / 2);
         }
@@ -1200,7 +1147,6 @@ void MaterialStyle::loadCustomFonts()
 {
     QDirIterator it(":/fonts/Fonts/", QDirIterator::Subdirectories);
     while (it.hasNext()) {
-//        qDebug() << it.next();
         QFontDatabase::addApplicationFont(it.next());
     }
 }

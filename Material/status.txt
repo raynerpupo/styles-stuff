@@ -7,4 +7,4 @@
 
 
 TODO
-hacer un frame pal focus de los widgets con radio 4
+cambiar la imagen del frame por una con background
