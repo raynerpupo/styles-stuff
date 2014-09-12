@@ -128,12 +128,14 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
     case PE_Frame:
     case PE_FrameMenu:
         if (const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(option)) {
-            if (elem == PE_FrameMenu || (frame->state & State_Sunken) || (frame->state & State_Raised)) {
-                QPixmap px(":/images/images/frame.png");
-                qDrawBorderPixmap(painter, frame->rect, QMargins(4, 4, 4, 4), px);
-            } else {
-                qDrawPlainRect(painter, frame->rect, COLOR_FRAME_BORDER, frame->lineWidth);
-            }
+//            if (elem == PE_FrameMenu || (frame->state & State_Sunken) || (frame->state & State_Raised)) {
+//                QPixmap px(":/images/images/frame.png");
+//                qDrawBorderPixmap(painter, frame->rect, QMargins(4, 4, 4, 4), px);
+//            } else {
+//                qDrawPlainRect(painter, frame->rect, COLOR_FRAME_BORDER, frame->lineWidth);
+//            }
+            painter->setPen(COLOR_FRAME_BORDER);
+            painter->drawRect(frame->rect.adjusted(0, 0, -1, -1));
             break;
         }
     case PE_FrameTabWidget: {
@@ -189,6 +191,13 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         }
         break;
     }
+    case PE_PanelScrollAreaCorner: {
+        painter->save();
+        painter->setPen(COLOR_FRAME_BORDER);
+        painter->setBrush(option->palette.window().color().darker());
+        painter->drawRect(option->rect);
+        painter->restore();
+    } break;
     default:
         QCommonStyle::drawPrimitive(elem, option, painter, widget);
         break;
@@ -426,6 +435,38 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
         drawControl(CE_TabBarTabLabel, option, painter, widget);
         break;
     }
+    case CE_ComboBoxLabel://combopaint
+        if (const QStyleOptionComboBox *cb = qstyleoption_cast<const QStyleOptionComboBox *>(option)) {
+            QRect editRect = proxy()->subControlRect(CC_ComboBox, cb, SC_ComboBoxEditField, widget);
+            painter->save();
+            painter->setClipRect(editRect);
+            if (!cb->currentIcon.isNull()) {
+                QIcon::Mode mode = cb->state & State_Enabled ? QIcon::Normal
+                                                             : QIcon::Disabled;
+                QPixmap pixmap = cb->currentIcon.pixmap(cb->iconSize, mode);
+                QRect iconRect(editRect);
+                iconRect.setWidth(cb->iconSize.width() + 4);
+                iconRect = alignedRect(cb->direction,
+                                       Qt::AlignLeft | Qt::AlignVCenter,
+                                       iconRect.size(), editRect);
+                if (cb->editable)
+                    painter->fillRect(iconRect, cb->palette.brush(QPalette::Base));
+                proxy()->drawItemPixmap(painter, iconRect, Qt::AlignCenter, pixmap);
+
+                if (cb->direction == Qt::RightToLeft)
+                    editRect.translate(-4 - cb->iconSize.width(), 0);
+                else
+                    editRect.translate(cb->iconSize.width() + 4, 0);
+            }
+            if (!cb->currentText.isEmpty() && !cb->editable) {
+                proxy()->drawItemText(painter, editRect.adjusted(1, 0, -1, 0),
+                                      visualAlignment(cb->direction, Qt::AlignLeft | Qt::AlignVCenter),
+                                      cb->palette, cb->state & State_Enabled, cb->currentText,
+                                      cb->editable ? QPalette::Text : QPalette::ButtonText);
+            }
+            painter->restore();
+        }
+        break;
     case CE_TabBarTabShape: {
         painter->fillRect(option->rect, QColor(0, 0, 255, 100));
         break;
@@ -518,6 +559,157 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
         }
         break;
     }
+    case CC_ScrollBar:
+        painter->save();
+        if (const QStyleOptionSlider *scrollBar = qstyleoption_cast<const QStyleOptionSlider *>(option)) {
+            bool horizontal = scrollBar->orientation == Qt::Horizontal;
+            bool sunken = scrollBar->state & State_Sunken;
+
+            QRect scrollBarSubLine = subControlRect(control, scrollBar, SC_ScrollBarSubLine, widget);
+            QRect scrollBarAddLine = subControlRect(control, scrollBar, SC_ScrollBarAddLine, widget);
+            QRect scrollBarSlider = subControlRect(control, scrollBar, SC_ScrollBarSlider, widget);
+//            QRect scrollBarGroove = subControlRect(control, scrollBar, SC_ScrollBarGroove, widget);
+
+            QRect rect = option->rect;
+            QColor frameBorderColor = COLOR_FRAME_BORDER;
+
+            QColor arrowColor = option->palette.foreground().color();
+            arrowColor.setAlpha(220);
+
+
+            // Paint groove
+            if (scrollBar->subControls & SC_ScrollBarGroove) {
+                painter->save();
+                painter->fillRect(rect, COLOR_SCROLLBAR_GROOVE);
+                painter->setPen(Qt::NoPen);
+
+                painter->fillRect(rect.adjusted(3, 3, -2, -2), COLOR_SCROLL_GROOVE_DECO);
+
+                painter->setPen(frameBorderColor);
+                if (horizontal)
+                    painter->drawLine(rect.topLeft(), rect.topRight());
+                else
+                    painter->drawLine(rect.topLeft(), rect.bottomLeft());
+                painter->restore();
+            }
+
+            QRect pixmapRect = scrollBarSlider;
+
+            // Paint slider
+            if (scrollBar->subControls & SC_ScrollBarSlider) {
+//                QRect pixmapRect = scrollBarSlider;
+//                painter->setPen(QPen(Qt::green));
+                if (option->state & State_Sunken && scrollBar->activeSubControls & SC_ScrollBarSlider) {
+                    QPixmap px(":/images/images/slider_button_sunken.png");
+                    qDrawBorderPixmap(painter, pixmapRect.adjusted(0, 0, horizontal ? 0 : 1, horizontal ? 1 : 0),
+                                      QMargins(2, 2, 2, 2), px);
+                }
+                else if (option->state & State_MouseOver && scrollBar->activeSubControls & SC_ScrollBarSlider) {
+                    QPixmap px(":/images/images/slider_button_hover.png");
+                    qDrawBorderPixmap(painter, pixmapRect.adjusted(0, 0, horizontal ? 0 : 1, horizontal ? 1 : 0),
+                                      QMargins(2, 2, 2, 2), px);
+                }
+                else { //normal
+                    QPixmap px(":/images/images/slider_button_normal.png");
+                    qDrawBorderPixmap(painter, pixmapRect.adjusted(0, 0, horizontal ? 0 : 1, horizontal ? 1 : 0),
+                                      QMargins(2, 2, 2, 2), px);
+                }
+
+
+//                painter->drawRect(pixmapRect.adjusted(horizontal ? -1 : 0, horizontal ? 0 : -1, horizontal ? 0 : 1, horizontal ? 1 : 0));
+
+//                painter->setPen(Qt::darkYellow);
+//                painter->drawRect(scrollBarSlider.adjusted(horizontal ? 0 : 1, horizontal ? 1 : 0, -1, -1));
+            }
+
+            // The SubLine (up/left) buttons
+            if (scrollBar->subControls & SC_ScrollBarSubLine) {
+//                qDebug() << "SUBLINE";
+                if ((scrollBar->activeSubControls & SC_ScrollBarSubLine) && sunken)
+                    painter->setBrush(scrollBar->palette.window().color().darker(130));
+                else if ((scrollBar->activeSubControls & SC_ScrollBarSubLine))
+                    painter->setBrush(scrollBar->palette.window().color().darker(116));
+                else
+                    painter->setBrush(scrollBar->palette.window());
+
+                painter->setPen(Qt::NoPen);
+                painter->drawRect(scrollBarSubLine.adjusted(horizontal ? 0 : 1, horizontal ? 1 : 0, 0, 0));
+                painter->setPen(QPen(frameBorderColor));
+                if (option->state & State_Horizontal) {
+                    if (option->direction == Qt::RightToLeft) {
+                        pixmapRect.setLeft(scrollBarSubLine.left());
+                        painter->drawLine(pixmapRect.topLeft(), pixmapRect.bottomLeft());
+                    } else {
+                        pixmapRect.setRight(scrollBarSubLine.right());
+                        painter->drawLine(pixmapRect.topRight(), pixmapRect.bottomRight());
+                    }
+                } else {
+                    pixmapRect.setBottom(scrollBarSubLine.bottom());
+                    painter->drawLine(pixmapRect.bottomLeft(), pixmapRect.bottomRight());
+                }
+
+//                painter->setBrush(Qt::NoBrush);
+//                painter->setPen(Qt::darkGray);
+//                painter->drawRect(scrollBarSubLine.adjusted(horizontal ? 0 : 1, horizontal ? 1 : 0 ,  horizontal ? -2 : -1, horizontal ? -1 : -2));
+
+                // Arrows
+                int rotation = 0;
+                if (option->state & State_Horizontal)
+                    rotation = option->direction == Qt::LeftToRight ? -90 : 90;
+                QRect upRect = scrollBarSubLine.translated(horizontal ? -2 : -1, 0);
+//                QPixmap arrowPixmap = colorizedImage(QLatin1String(":/qt-project.org/styles/commonstyle/images/fusion_arrow.png"), arrowColor, rotation);
+                QPixmap arrowPixmap(":/images/images/slider_frame.png");
+                painter->drawPixmap(QRectF(upRect.center().x() - arrowPixmap.width() / 4.0  + 2.0,
+                                          upRect.center().y() - arrowPixmap.height() / 4.0 + 1.0,
+                                          arrowPixmap.width() / 2.0, arrowPixmap.height() / 2.0),
+                                          arrowPixmap, QRectF(QPoint(0.0, 0.0), arrowPixmap.size()));
+            }
+
+            // The AddLine (down/right) button
+            if (scrollBar->subControls & SC_ScrollBarAddLine) {
+                if ((scrollBar->activeSubControls & SC_ScrollBarAddLine) && sunken)
+                    painter->setBrush(scrollBar->palette.window().color().darker(130));
+                else if ((scrollBar->activeSubControls & SC_ScrollBarAddLine))
+                    painter->setBrush(scrollBar->palette.window().color().darker(116));
+                else
+                    painter->setBrush(scrollBar->palette.window());
+
+                painter->setPen(Qt::NoPen);
+                painter->drawRect(scrollBarAddLine.adjusted(horizontal ? 0 : 1, horizontal ? 1 : 0, 0, 0));
+                painter->setPen(QPen(frameBorderColor, 1));
+                if (option->state & State_Horizontal) {
+                    if (option->direction == Qt::LeftToRight) {
+                        pixmapRect.setLeft(scrollBarAddLine.left());
+                        painter->drawLine(pixmapRect.topLeft(), pixmapRect.bottomLeft());
+                    } else {
+                        pixmapRect.setRight(scrollBarAddLine.right());
+                        painter->drawLine(pixmapRect.topRight(), pixmapRect.bottomRight());
+                    }
+                } else {
+                    pixmapRect.setTop(scrollBarAddLine.top());
+                    painter->drawLine(pixmapRect.topLeft(), pixmapRect.topRight());
+                }
+
+//                painter->setPen(Qt::darkGray);
+//                painter->setBrush(Qt::NoBrush);
+//                painter->drawRect(scrollBarAddLine.adjusted(1, 1, -1, -1));
+
+                int rotation = 180;
+                if (option->state & State_Horizontal)
+                    rotation = option->direction == Qt::LeftToRight ? 90 : -90;
+                QRect downRect = scrollBarAddLine.translated(-1, 1);
+//                QPixmap arrowPixmap = colorizedImage(QLatin1String(":/qt-project.org/styles/commonstyle/images/fusion_arrow.png"), arrowColor, rotation);
+                QPixmap arrowPixmap(":/images/images/slider_frame.png");
+                painter->drawPixmap(QRectF(downRect.center().x() - arrowPixmap.width() / 4.0 + 2.0,
+                                           downRect.center().y() - arrowPixmap.height() / 4.0,
+                                           arrowPixmap.width() / 2.0, arrowPixmap.height() / 2.0),
+                                           arrowPixmap, QRectF(QPoint(0.0, 0.0), arrowPixmap.size()));
+            }
+
+        }
+        painter->restore();
+        break;
+
     default:
         QCommonStyle::drawComplexControl(control, option, painter, widget);
         break;
@@ -801,7 +993,13 @@ QRect MaterialStyle::subElementRect(QStyle::SubElement subElem, const QStyleOpti
 
 int MaterialStyle::styleHint(QStyle::StyleHint sh, const QStyleOption *opt, const QWidget *w, QStyleHintReturn *shret) const
 {
-    return QCommonStyle::styleHint(sh, opt, w, shret);
+    switch (sh) {
+    case SH_ScrollBar_Transient:
+        return 0;
+        break;
+    default:
+        return QCommonStyle::styleHint(sh, opt, w, shret);
+    }
 }
 
 QPainterPath MaterialStyle::roundRectPath(const QRect &rect) const
