@@ -45,6 +45,7 @@ public:
     int pixelMetric(PixelMetric metric, const QStyleOption *option = 0, const QWidget *widget = 0) const;
     void polish(QWidget *widget);
     void polish(QPalette &pal);
+    void unpolish(QWidget *widget);
     QRect subElementRect(SubElement subElem, const QStyleOption *opt, const QWidget *widget) const;
     int styleHint(StyleHint sh, const QStyleOption *opt, const QWidget *w, QStyleHintReturn *shret = 0) const;
 signals:

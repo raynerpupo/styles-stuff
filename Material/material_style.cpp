@@ -22,6 +22,10 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QGroupBox>
+#include <QSpinBox>
+#include <QScrollBar>
+#include <QProgressBar>
+#include <QSplitterHandle>
 #include <QResource>
 #include <QFontDatabase>
 #include <QDirIterator>
@@ -125,7 +129,12 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         qDrawBorderPixmap(painter, option->rect, QMargins(4, 4, 4, 4), px);
         break;
     }
-    case PE_Frame:
+    case PE_Frame:{
+        painter->setPen(COLOR_FRAME_BORDER);
+        painter->setBrush(COLOR_PALETTE_WINDOW);
+        painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
+    }
+        break;
     case PE_FrameMenu:
         if (const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(option)) {
             //            if (elem == PE_FrameMenu || (frame->state & State_Sunken) || (frame->state & State_Raised)) {
@@ -393,9 +402,7 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
                 }
             }
 
-            //            painter->setPen(Qt::red);
-            //            painter->setBrush(QColor(0, 0, 255, 100));
-            //            painter->drawRect(rect.adjusted(0, 0, -1, 0));
+            painter->translate(0.5, 0.5);//para corregir problema de East por bug de QPainter + hidpi
             QPixmap px1(px1Str);
             int test = 0;
             //            painter->setRenderHint(QPainter::Antialiasing);
@@ -439,14 +446,15 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
             p1.ry() -= 1;
             QPoint p2 = rect.bottomRight();
             p2.ry() -= 1;
+            p2.rx() -= 1;
             painter->drawLine(p1, p2);
 
             //draw the separation
             if (!(lastTab || onlyOne)) {
-                int sepMargin = 7;
+                int sepMargin = 1;
                 painter->setPen(QPen(COLOR_TAB_SEPARATOR, 1));
-                painter->drawLine(rect.right(), sepMargin,
-                                  rect.right(), rect.height() - sepMargin);
+                painter->drawLine(rect.right() - 1, sepMargin,
+                                  rect.right() - 1, rect.height() - sepMargin);
             }
 
             //            QRect drawRect = rect.adjusted(0, selected ? 0 : 2, 0, 3);
@@ -578,6 +586,52 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
         }
         break;
     }
+    case CE_ProgressBarGroove:{
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->translate(0.5, 0.5);
+        painter->setPen(COLOR_FRAME_BORDER);
+        painter->setBrush(COLOR_PALETTE_WINDOW);
+        painter->drawRoundedRect(option->rect.adjusted(0, 0, -1, -1), 4, 4);
+        painter->restore();
+    }
+        break;
+    case CE_ProgressBarContents: {
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->translate(0.5, 0.5);
+        QRect rect = option->rect;
+
+        if (const QStyleOptionProgressBar *bar = qstyleoption_cast<const QStyleOptionProgressBar *>(option)) {
+            bool vertical = (bar->orientation == Qt::Vertical);
+//            bool inverted = bar->invertedAppearance;
+            bool indeterminate = (bar->minimum == 0 && bar->maximum == 0);
+            bool complete = bar->progress == bar->maximum;
+
+            if (vertical) {
+                rect = QRect(rect.left(), rect.top(), rect.height(), rect.width());
+                QTransform m = QTransform::fromTranslate(rect.height()-1, -1.0);
+                m.rotate(90.0);
+                painter->setTransform(m, true);
+            }
+            QLinearGradient gradient;
+            if (!vertical) {
+                gradient.setStart(0, 0);
+                gradient.setFinalStop(rect.right(), 0);
+            } else {
+                gradient.setStart(0, rect.bottom());
+                gradient.setFinalStop(0, 0);
+            }
+            gradient.setColorAt(0, COLOR_SLIDER_GROOVE_L);
+            gradient.setColorAt(1, COLOR_SLIDER_GROOVE_D);
+            painter->setBrush(gradient);
+            QRect cRect = subElementRect(SE_ProgressBarContents, bar, widget);
+            painter->drawRect(cRect);
+        }
+
+        painter->restore();
+    }
+        break;
     default:
         QCommonStyle::drawControl(ce, option, painter, widget);
         break;
@@ -825,8 +879,8 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
         break;
     case CC_SpinBox:
         if (const QStyleOptionSpinBox *spinBox = qstyleoption_cast<const QStyleOptionSpinBox *>(option)) {
-//            bool isEnabled = (spinBox->state & State_Enabled);
-//            bool hover = isEnabled && (spinBox->state & State_MouseOver);
+            bool isEnabled = (spinBox->state & State_Enabled);
+            bool hover = isEnabled && (spinBox->state & State_MouseOver);
             bool sunken = (spinBox->state & State_Sunken);
             bool upIsActive = (spinBox->activeSubControls == SC_SpinBoxUp);
             bool downIsActive = (spinBox->activeSubControls == SC_SpinBoxDown);
@@ -850,15 +904,18 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
             painter->translate(-0.5, -0.5);
 //            painter->setOpacity(0.4);
 //            qDebug() << "uprect" << upRect;
+            QColor btnBg = hover ? COLOR_COMBOBOX_HOVER : COLOR_PALETTE_WINDOW;
             painter->setPen(Qt::NoPen);
             painter->save();
-            painter->setBrush((upIsActive && sunken) ? COLOR_COMBOBOX_SUNKEN : COLOR_PALETTE_WINDOW);
-            painter->setClipRect(upRect);
-            painter->drawRoundedRect(upRect.adjusted(-4, 0, 1, 4), 4, 4);
+            painter->translate(-0.5, -0.5);
+            painter->setBrush((upIsActive && sunken) ? COLOR_COMBOBOX_SUNKEN : btnBg);
+            painter->setClipRect(upRect.adjusted(1, 0, 1, 0));
+            painter->drawRoundedRect(upRect.adjusted(-4, 1, 1, 4), 4, 4);
             painter->restore();
             painter->save();
-            painter->setBrush((downIsActive && sunken) ? COLOR_COMBOBOX_SUNKEN : COLOR_PALETTE_WINDOW);
-            painter->setClipRect(downRect);
+            painter->translate(-0.5, -0.5);
+            painter->setBrush((downIsActive && sunken) ? COLOR_COMBOBOX_SUNKEN : btnBg);
+            painter->setClipRect(downRect.adjusted(1, 0, 1, 1));
             painter->drawRoundedRect(downRect.adjusted(-4, -4, 1, 1), 4, 4);
             painter->restore();
 
@@ -1185,13 +1242,12 @@ void MaterialStyle::polish(QWidget *widget)
 {
     if (qobject_cast<QPushButton *>(widget)
             || qobject_cast<QComboBox *>(widget)
-            || qobject_cast<QSlider *>(widget))
+            || qobject_cast<QProgressBar *>(widget)
+            || qobject_cast<QScrollBar *>(widget)
+            || qobject_cast<QSplitterHandle *>(widget)
+            || qobject_cast<QAbstractSlider *>(widget)
+            || qobject_cast<QAbstractSpinBox *>(widget))
         widget->setAttribute(Qt::WA_Hover, true);
-    //    if (qobject_cast<QGroupBox *>(widget)) {
-    //        QFont font("Myriad Pro", 12);
-    //        font.setBold(true);
-    //        widget->setFont(font);
-    //    }
 }
 
 void MaterialStyle::polish(QPalette &pal)
@@ -1207,6 +1263,18 @@ void MaterialStyle::polish(QPalette &pal)
     pal.setBrush(QPalette::BrightText, QColor(7, 30, 82));       //pushbutton hover text color
     pal.setBrush(QPalette::Disabled, QPalette::ButtonText, QColor(171, 171, 171));
     pal.setBrush(QPalette::WindowText, COLOR_WINDOW_TEXT);
+}
+
+void MaterialStyle::unpolish(QWidget *widget)
+{
+    if (qobject_cast<QPushButton *>(widget)
+            || qobject_cast<QComboBox *>(widget)
+            || qobject_cast<QProgressBar *>(widget)
+            || qobject_cast<QScrollBar *>(widget)
+            || qobject_cast<QSplitterHandle *>(widget)
+            || qobject_cast<QAbstractSlider *>(widget)
+            || qobject_cast<QAbstractSpinBox *>(widget))
+        widget->setAttribute(Qt::WA_Hover, false);
 }
 
 QRect MaterialStyle::subElementRect(QStyle::SubElement subElem, const QStyleOption *opt, const QWidget *widget) const
@@ -1235,6 +1303,27 @@ QRect MaterialStyle::subElementRect(QStyle::SubElement subElem, const QStyleOpti
                   opt->rect.height());
         r = visualRect(opt->direction, opt->rect, r);
     }
+    case SE_ProgressBarLabel:
+    case SE_ProgressBarContents: {
+        if (const QStyleOptionProgressBar *bar = qstyleoption_cast<const QStyleOptionProgressBar *>(opt)) {
+            int progress = bar->progress;
+            int minimum = bar->minimum;
+            int maximum = bar->maximum;
+            QRect cRect = bar->rect.adjusted(2, 2, -4, -4);
+            if (minimum == 0 && maximum == 0) {
+                return cRect;
+            }
+            if (minimum > maximum || progress < minimum || progress > maximum) {
+                return QRect(0, 0, 0, 0);
+            }
+
+            int cWidth = progress * 100 / (maximum - minimum);
+
+        }
+    }
+        break;
+    case SE_ProgressBarGroove:
+        return opt->rect;
     default:
         return QCommonStyle::subElementRect(subElem, opt, widget);
     }
