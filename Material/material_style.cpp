@@ -604,32 +604,61 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
 
         if (const QStyleOptionProgressBar *bar = qstyleoption_cast<const QStyleOptionProgressBar *>(option)) {
             bool vertical = (bar->orientation == Qt::Vertical);
+            rect = subElementRect(SE_ProgressBarContents, bar, widget);
 //            bool inverted = bar->invertedAppearance;
-            bool indeterminate = (bar->minimum == 0 && bar->maximum == 0);
-            bool complete = bar->progress == bar->maximum;
+            int minimum = bar->minimum;
+            int maximum = bar->maximum;
+            bool indeterminate = (minimum == 0 && maximum == 0);
+            bool complete = bar->progress == maximum;
+            int progress = bar->progress;
+            if (minimum < maximum) {
+                QLinearGradient gradient;
+                if (!vertical) {
+                    gradient.setStart(0, 0);
+                    gradient.setFinalStop(rect.right(), 0);
+                } else {
+                    gradient.setStart(0, rect.bottom());
+                    gradient.setFinalStop(0, 0);
+                }
+                gradient.setColorAt(0, COLOR_SLIDER_GROOVE_L);
+                gradient.setColorAt(1, COLOR_SLIDER_GROOVE_D);
 
-            if (vertical) {
-                rect = QRect(rect.left(), rect.top(), rect.height(), rect.width());
-                QTransform m = QTransform::fromTranslate(rect.height()-1, -1.0);
-                m.rotate(90.0);
-                painter->setTransform(m, true);
+                painter->setBrush(gradient);
+                painter->setPen(Qt::NoPen);
+
+                painter->save();
+                rect.adjust(2, 2, -2, -3);
+                int totalLenght = vertical ? rect.height() : rect.width();
+                int currentPos = progress * totalLenght / (maximum - minimum);
+                QRect clipRect = rect.adjusted(-1, -1, 0, 0);
+                if (vertical) {
+                    clipRect.setHeight(currentPos);
+                    clipRect.moveTop(totalLenght - currentPos + 1);
+                } else {
+                    clipRect.setWidth(currentPos);
+                }
+                painter->setClipRect(clipRect);
+                painter->drawRoundedRect(rect.adjusted(0, 0, -1, 0), 4, 4);
+                painter->restore();
+
             }
-            QLinearGradient gradient;
-            if (!vertical) {
-                gradient.setStart(0, 0);
-                gradient.setFinalStop(rect.right(), 0);
-            } else {
-                gradient.setStart(0, rect.bottom());
-                gradient.setFinalStop(0, 0);
+            else { //animacion fula
+                ///TODO hacer el estado animado de min = max = 0
             }
-            gradient.setColorAt(0, COLOR_SLIDER_GROOVE_L);
-            gradient.setColorAt(1, COLOR_SLIDER_GROOVE_D);
-            painter->setBrush(gradient);
-            QRect cRect = subElementRect(SE_ProgressBarContents, bar, widget);
-            painter->drawRect(cRect);
         }
 
         painter->restore();
+    }
+        break;
+    case CE_ProgressBarLabel: {
+        if (const QStyleOptionProgressBar *bar = qstyleoption_cast<const QStyleOptionProgressBar *>(option)) {
+            bool vertical = (bar->orientation == Qt::Vertical);
+            QRect textRect = subElementRect(SE_ProgressBarLabel, bar, widget);
+            if (vertical) {
+                textRect = QRect(textRect.left(), textRect.top(), textRect.height(), textRect.width());
+                QTransform matrix;
+            }
+        }
     }
         break;
     default:
@@ -1304,24 +1333,7 @@ QRect MaterialStyle::subElementRect(QStyle::SubElement subElem, const QStyleOpti
         r = visualRect(opt->direction, opt->rect, r);
     }
     case SE_ProgressBarLabel:
-    case SE_ProgressBarContents: {
-        if (const QStyleOptionProgressBar *bar = qstyleoption_cast<const QStyleOptionProgressBar *>(opt)) {
-            int progress = bar->progress;
-            int minimum = bar->minimum;
-            int maximum = bar->maximum;
-            QRect cRect = bar->rect.adjusted(2, 2, -4, -4);
-            if (minimum == 0 && maximum == 0) {
-                return cRect;
-            }
-            if (minimum > maximum || progress < minimum || progress > maximum) {
-                return QRect(0, 0, 0, 0);
-            }
-
-            int cWidth = progress * 100 / (maximum - minimum);
-
-        }
-    }
-        break;
+    case SE_ProgressBarContents:
     case SE_ProgressBarGroove:
         return opt->rect;
     default:
