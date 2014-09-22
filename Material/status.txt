@@ -1,10 +1,12 @@
 -QPushButton: full
 -QGroupBox: full
 -QFrame: full
+-QLineEdit: full
+-QComboBox: full
+-QSpinBox: full
+-QTabWidget: east bug
 
 
 
 
 
-TODO
-cambiar la imagen del frame por una con background

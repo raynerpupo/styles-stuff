@@ -24,6 +24,12 @@
         <file>images/tab_hover_rounded.png</file>
         <file>images/tab_sunken_rounded.png</file>
         <file>images/tab_normal_rounded.png</file>
+        <file>images/arrow_ind.png</file>
+        <file>images/combobox_button_hover.png</file>
+        <file>images/combobox_button_sunken.png</file>
+        <file>images/combobox_button.png</file>
+        <file>images/edit_frame.png</file>
+        <file>images/edit_frame_active.png</file>
     </qresource>
     <qresource prefix="/fonts">
         <file>Fonts/MYRIADPRO-BOLD.OTF</file>
