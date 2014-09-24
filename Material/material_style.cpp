@@ -29,6 +29,9 @@
 #include <QResource>
 #include <QFontDatabase>
 #include <QDirIterator>
+#include "progress_style_animation.h"
+#include "style_animation.h"
+
 //#include <QStyleOptionTabV3>
 
 MaterialStyle::MaterialStyle()
@@ -40,7 +43,7 @@ MaterialStyle::MaterialStyle()
     groupBoxFont.setBold(true);
     //    groupBoxFont.setStyleStrategy(QFont::NoAntialias);
 
-    regularFont = QFont("Myriad Pro", 10);
+    regularFont = QFont("Myriad Pro", 9);
     //    regularFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.7);
     //    regularFont.setWeight(5);
     //    regularFont.setPixelSize(2);
@@ -136,6 +139,7 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
     }
         break;
     case PE_FrameMenu:
+        qDebug() <<  "PE_FrameMenu";
         if (const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(option)) {
             //            if (elem == PE_FrameMenu || (frame->state & State_Sunken) || (frame->state & State_Raised)) {
             //                QPixmap px(":/images/images/frame.png");
@@ -144,10 +148,24 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
             //                qDrawPlainRect(painter, frame->rect, COLOR_FRAME_BORDER, frame->lineWidth);
             //            }
             painter->setPen(COLOR_FRAME_BORDER);
+            //TODO only for testing
             painter->setBrush(Qt::red);
             painter->drawRect(frame->rect.adjusted(0, 0, -1, -1));
-            break;
         }
+        break;
+    case PE_PanelMenuBar: {
+        //TODO only for testing
+        qDebug() << "PE_PanelMenuBar";
+        painter->fillRect(option->rect, Qt::green);
+    }
+        break;
+    case PE_PanelMenu: {
+        //TODO only for testing
+        painter->setPen(COLOR_FRAME_BORDER);
+        painter->setBrush(COLOR_MENU_BG);
+        painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
+    }
+        break;
     case PE_FrameTabWidget: {
         //        painter->fillRect(option->rect, QColor(255, 0 ,0, 100));
         QPixmap px(":/images/images/tabwidget_frame.png");
@@ -243,6 +261,13 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         //        painter->drawLine(QPoint(r.left() + 2, r.top() + 1), QPoint(r.right() - 2, r.top() + 1));
 
         painter->restore();
+    }
+        break;
+    case PE_IndicatorButtonDropDown:
+    case PE_PanelButtonCommand: {
+        //TODO hacerlo de verdad
+
+        painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
     }
         break;
     default:
@@ -612,6 +637,9 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
             bool complete = bar->progress == maximum;
             int progress = bar->progress;
             if (minimum < maximum) {
+                //parar la animacion si hay
+                stopAnimation(option->styleObject);
+
                 QLinearGradient gradient;
                 if (!vertical) {
                     gradient.setStart(0, 0);
@@ -643,12 +671,29 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
 
             }
             else { //animacion fula
-                ///TODO hacer el estado animado de min = max = 0
+                //pintando el fondo
+                painter->setBrush(COLOR_PROGRESSBAR_UND_BG);
+                painter->setPen(Qt::NoPen);
+                QRect cRect = rect;
+                cRect.adjust(2, 2, -3, -3);
+                painter->drawRoundedRect(cRect, 4, 4);
+                painter->setClipRect(cRect);
+
+                //pintando las lineas
+                painter->setPen(QPen(QColor(90, 90, 90, 80), 8));
+                int step = 0;
+                if (ProgressStyleAnimation *anim = qobject_cast<ProgressStyleAnimation*>(animation(bar->styleObject))) {
+                    step = anim->animationStep() % 22;
+                } else {
+                    startAnimation(new ProgressStyleAnimation(30, bar->styleObject));
+                }
+                for (int x = rect.left() - rect.height(); x < rect.right() ; x += 22)
+                    painter->drawLine(x + step, rect.bottom() + 1,
+                                      x + rect.height() + step, rect.top() - 2);
+                }
             }
         }
-
-        painter->restore();
-    }
+        painter->restore();    
         break;
     case CE_ProgressBarLabel: {
         if (const QStyleOptionProgressBar *bar = qstyleoption_cast<const QStyleOptionProgressBar *>(option)) {
@@ -657,9 +702,232 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
             if (vertical) {
                 textRect = QRect(textRect.left(), textRect.top(), textRect.height(), textRect.width());
                 QTransform matrix;
+                matrix.rotate(90);
+//                qDebug() << textRect;
+                matrix.translate(0, -textRect.height());
+                painter->setTransform(matrix);
             }
+            QString text = bar->text;
+            if (bar->minimum == 0 && bar->maximum == 0) {
+                text = tr("Loading...");
+            }
+            else if (bar->progress == bar->maximum) {
+                text = tr("Complete!");
+            }
+            painter->save();
+            painter->setRenderHint(QPainter::TextAntialiasing);
+            QFont shadowFont = regularFont;
+//            shadowFont.setWeight(80);
+            painter->setFont(shadowFont);
+            painter->setPen(QPen(COLOR_BUTTON_SHADOW, 4));
+            painter->drawText(textRect.adjusted(2, 2, 0, 0), text, QTextOption(Qt::AlignAbsolute | Qt::AlignHCenter | Qt::AlignVCenter));
+            painter->setPen(COLOR_BUTTON_TEXT.darker(110));
+            painter->setFont(regularFont);
+            painter->drawText(textRect, text, QTextOption(Qt::AlignAbsolute | Qt::AlignHCenter | Qt::AlignVCenter));
+            painter->restore();
         }
     }
+        break;
+    case CE_MenuItem:
+        painter->save();
+        if (const QStyleOptionMenuItem *menuItem = qstyleoption_cast<const QStyleOptionMenuItem *>(option)) {
+            QColor highlight = option->palette.highlight().color();
+            QColor highlightOutline = highlight.darker(150);
+            if (menuItem->menuItemType == QStyleOptionMenuItem::Separator) {
+                int w = 0;
+                if (!menuItem->text.isEmpty()) {
+                    painter->setFont(menuItem->font);
+                    proxy()->drawItemText(painter, menuItem->rect.adjusted(5, 0, -5, 0), Qt::AlignLeft | Qt::AlignVCenter,
+                                          menuItem->palette, menuItem->state & State_Enabled, menuItem->text,
+                                          QPalette::Text);
+                    w = menuItem->fontMetrics.width(menuItem->text) + 5;
+                }
+                painter->setPen(COLOR_FRAME_BORDER);
+                bool reverse = menuItem->direction == Qt::RightToLeft;
+                painter->drawLine(menuItem->rect.left() + 5 + (reverse ? 0 : w), menuItem->rect.center().y(),
+                                  menuItem->rect.right() - 5 - (reverse ? w : 0), menuItem->rect.center().y());
+                painter->restore();
+                break;
+            }
+            bool selected = menuItem->state & State_Selected && menuItem->state & State_Enabled;
+            if (selected) {
+                QRect r = option->rect;
+                painter->fillRect(r.adjusted(2, 0, -2, 0), highlight);
+//                painter->setPen(Qt::NoPen);
+//                const QLine lines[4] = {
+//                    QLine(QPoint(r.left() + 1, r.bottom()), QPoint(r.right() - 1, r.bottom())),
+//                    QLine(QPoint(r.left() + 1, r.top()), QPoint(r.right() - 1, r.top())),
+//                    QLine(QPoint(r.left(), r.top()), QPoint(r.left(), r.bottom())),
+//                    QLine(QPoint(r.right() , r.top()), QPoint(r.right(), r.bottom())),
+//                };
+//                painter->drawLines(lines, 4);
+            }
+            bool checkable = menuItem->checkType != QStyleOptionMenuItem::NotCheckable;
+            bool checked = menuItem->checked;
+            bool sunken = menuItem->state & State_Sunken;
+            bool enabled = menuItem->state & State_Enabled;
+
+            bool ignoreCheckMark = false;
+            int checkcol = qMax(menuItem->maxIconWidth, 20);
+
+            if (qobject_cast<const QComboBox*>(widget))
+                ignoreCheckMark = true; //ignore the checkmarks provided by the QComboMenuDelegate
+
+            if (!ignoreCheckMark) {
+                // Check
+                QRect checkRect(option->rect.left() + 7, option->rect.center().y() - 6, 14, 14);
+                checkRect = visualRect(menuItem->direction, menuItem->rect, checkRect);
+                if (checkable) {
+                    if (menuItem->checkType & QStyleOptionMenuItem::Exclusive) {
+                        // Radio button
+                        if (checked || sunken) {
+                            painter->setRenderHint(QPainter::Antialiasing);
+                            painter->setPen(Qt::NoPen);
+
+                            QPalette::ColorRole textRole = !enabled ? QPalette::Text:
+                                                                      selected ? QPalette::HighlightedText : QPalette::ButtonText;
+                            painter->setBrush(option->palette.brush( option->palette.currentColorGroup(), textRole));
+                            painter->drawEllipse(checkRect.adjusted(4, 4, -4, -4));
+                        }
+                    } else {
+                        // Check box
+                        if (menuItem->icon.isNull()) {
+                            QStyleOptionButton box;
+                            box.QStyleOption::operator=(*option);
+                            box.rect = checkRect;
+//                            if (checked)
+//                                box.state |= State_On;
+                            box.state = checked ? State_On : State_Off;
+                            proxy()->drawPrimitive(PE_IndicatorCheckBox, &box, painter, widget);
+                        }
+                    }
+                }
+            } else { //ignore checkmark
+                if (menuItem->icon.isNull())
+                    checkcol = 0;
+                else
+                    checkcol = menuItem->maxIconWidth;
+            }
+
+            // Text and icon, ripped from windows style
+            bool dis = !enabled;
+            bool act = menuItem->state & State_Selected;
+            const QStyleOption *opt = option;
+            const QStyleOptionMenuItem *menuitem = menuItem;
+
+            QPainter *p = painter;
+            QRect vCheckRect = visualRect(opt->direction, menuitem->rect,
+                                          QRect(menuitem->rect.x() + 4, menuitem->rect.y(),
+                                                checkcol, menuitem->rect.height()));
+            if (!menuItem->icon.isNull()) {
+                QIcon::Mode mode = dis ? QIcon::Disabled : QIcon::Normal;
+                if (act && !dis)
+                    mode = QIcon::Active;
+                QPixmap pixmap;
+
+                int smallIconSize = proxy()->pixelMetric(PM_SmallIconSize, option, widget);
+                QSize iconSize(smallIconSize, smallIconSize);
+                if (const QComboBox *combo = qobject_cast<const QComboBox*>(widget))
+                    iconSize = combo->iconSize();
+                if (checked)
+                    pixmap = menuItem->icon.pixmap(iconSize, mode, QIcon::On);
+                else
+                    pixmap = menuItem->icon.pixmap(iconSize, mode);
+
+                int pixw = pixmap.width();
+                int pixh = pixmap.height();
+
+                QRect pmr(0, 0, pixw, pixh);
+                pmr.moveCenter(vCheckRect.center());
+                painter->setPen(menuItem->palette.text().color());
+                if (checkable && checked) {
+                    QStyleOption opt = *option;
+                    if (act) {
+                        QColor activeColor = (option->palette.highlight().color().lighter(120));
+                        opt.palette.setBrush(QPalette::Button, activeColor);
+                    }
+                    opt.state |= State_Sunken;
+                    opt.rect = vCheckRect;
+                    proxy()->drawPrimitive(PE_PanelButtonCommand, &opt, painter, widget);
+                }
+                painter->drawPixmap(pmr.topLeft(), pixmap);
+            }
+            if (selected) {
+                painter->setPen(menuItem->palette.highlightedText().color());
+            } else {
+                painter->setPen(menuItem->palette.text().color());
+            }
+            int x, y, w, h;
+            menuitem->rect.getRect(&x, &y, &w, &h);
+            int tab = menuitem->tabWidth;
+            QColor discol;
+            if (dis) {
+                discol = menuitem->palette.text().color();
+                p->setPen(discol);
+            }
+            int xm = windowsItemFrame + checkcol + windowsItemHMargin + 2;
+            int xpos = menuitem->rect.x() + xm;
+
+            QRect textRect(xpos, y + windowsItemVMargin, w - xm - windowsRightBorder - tab + 1, h - 2 * windowsItemVMargin);
+            QRect vTextRect = visualRect(opt->direction, menuitem->rect, textRect);
+            QString s = menuitem->text;
+            if (!s.isEmpty()) {                     // draw text
+                p->save();
+                int t = s.indexOf(QLatin1Char('\t'));
+                int text_flags = Qt::AlignVCenter | Qt::TextShowMnemonic | Qt::TextDontClip | Qt::TextSingleLine;
+                if (!styleHint(SH_UnderlineShortcut, menuitem, widget))
+                    text_flags |= Qt::TextHideMnemonic;
+                text_flags |= Qt::AlignLeft;
+                if (t >= 0) {
+                    QRect vShortcutRect = visualRect(opt->direction, menuitem->rect,
+                                                     QRect(textRect.topRight(), QPoint(menuitem->rect.right(), textRect.bottom())));
+                    if (dis && !act && proxy()->styleHint(SH_EtchDisabledText, option, widget)) {
+                        p->setPen(menuitem->palette.light().color());
+                        p->drawText(vShortcutRect.adjusted(1, 1, 1, 1), text_flags, s.mid(t + 1));
+                        p->setPen(discol);
+                    }
+                    p->drawText(vShortcutRect, text_flags, s.mid(t + 1));
+                    s = s.left(t);
+                }
+                QFont font = menuitem->font;
+                // font may not have any "hard" flags set. We override
+                // the point size so that when it is resolved against the device, this font will win.
+                // This is mainly to handle cases where someone sets the font on the window
+                // and then the combo inherits it and passes it onward. At that point the resolve mask
+                // is very, very weak. This makes it stonger.
+                font.setPointSizeF(QFontInfo(menuItem->font).pointSizeF());
+
+                if (menuitem->menuItemType == QStyleOptionMenuItem::DefaultItem)
+                    font.setBold(true);
+
+                p->setFont(font);
+                if (dis && !act && proxy()->styleHint(SH_EtchDisabledText, option, widget)) {
+                    p->setPen(menuitem->palette.light().color());
+                    p->drawText(vTextRect.adjusted(1, 1, 1, 1), text_flags, s.left(t));
+                    p->setPen(discol);
+                }
+                p->drawText(vTextRect, text_flags, s.left(t));
+                p->restore();
+            }
+
+            // Arrow
+            if (menuItem->menuItemType == QStyleOptionMenuItem::SubMenu) {// draw sub menu arrow
+                int dim = (menuItem->rect.height() - 4) / 2;
+                PrimitiveElement arrow;
+                arrow = option->direction == Qt::RightToLeft ? PE_IndicatorArrowLeft : PE_IndicatorArrowRight;
+                int xpos = menuItem->rect.left() + menuItem->rect.width() - 3 - dim;
+                QRect  vSubMenuRect = visualRect(option->direction, menuItem->rect,
+                                                 QRect(xpos, menuItem->rect.top() + menuItem->rect.height() / 2 - dim / 2, dim, dim));
+                QStyleOptionMenuItem newMI = *menuItem;
+                newMI.rect = vSubMenuRect;
+                newMI.state = !enabled ? State_None : State_Enabled;
+                if (selected)
+                    newMI.palette.setColor(QPalette::Foreground,
+                                           newMI.palette.highlightedText().color());
+                proxy()->drawPrimitive(arrow, &newMI, painter, widget);
+            }
+        }
+        painter->restore();
         break;
     default:
         QCommonStyle::drawControl(ce, option, painter, widget);
@@ -1287,11 +1555,14 @@ void MaterialStyle::polish(QPalette &pal)
     pal.setBrush(QPalette::Midlight, QColor(132, 191, 247));     //pushbutton hover start gradient
     pal.setBrush(QPalette::Mid, QColor(43, 84, 163));            //pushbutton hover end gradient
     pal.setBrush(QPalette::Button, COLOR_PALETTE_WINDOW);       //button normal color
-    pal.setBrush(QPalette::ButtonText, QColor(255, 255, 255));   //pushbutton text color
+    pal.setBrush(QPalette::ButtonText, COLOR_BUTTON_TEXT);   //pushbutton text color
     pal.setBrush(QPalette::Shadow, QColor(0, 0, 0));             //shadow
     pal.setBrush(QPalette::BrightText, QColor(7, 30, 82));       //pushbutton hover text color
     pal.setBrush(QPalette::Disabled, QPalette::ButtonText, QColor(171, 171, 171));
     pal.setBrush(QPalette::WindowText, COLOR_WINDOW_TEXT);
+    pal.setBrush(QPalette::Highlight, COLOR_PALETTE_HIGHLIGHT);
+    pal.setBrush(QPalette::Text, COLOR_PALETTE_TEXT);
+    pal.setBrush(QPalette::HighlightedText, COLOR_PALETTE_HL_TEXT);
 }
 
 void MaterialStyle::unpolish(QWidget *widget)
@@ -1332,6 +1603,7 @@ QRect MaterialStyle::subElementRect(QStyle::SubElement subElem, const QStyleOpti
                   opt->rect.height());
         r = visualRect(opt->direction, opt->rect, r);
     }
+        break;
     case SE_ProgressBarLabel:
     case SE_ProgressBarContents:
     case SE_ProgressBarGroove:
@@ -1347,10 +1619,33 @@ int MaterialStyle::styleHint(QStyle::StyleHint sh, const QStyleOption *opt, cons
     switch (sh) {
     case SH_ScrollBar_Transient:
         return 0;
-        break;
+    case SH_Slider_SnapToValue:
+    case SH_PrintDialog_RightAlignButtons:
+    case SH_FontDialog_SelectAssociatedText:
+    case SH_MenuBar_AltKeyNavigation:
+    case SH_ComboBox_ListMouseTracking:
+    case SH_ScrollBar_StopMouseOverSlider:
+    case SH_ScrollBar_MiddleClickAbsolutePosition:
+    case SH_EtchDisabledText:
+    case SH_TitleBar_AutoRaise:
+    case SH_TitleBar_NoBorder:
+    case SH_ItemView_ShowDecorationSelected:
+    case SH_ItemView_ArrowKeysNavigateIntoChildren:
+    case SH_ItemView_ChangeHighlightOnFocus:
+    case SH_MenuBar_MouseTracking:
+    case SH_Menu_MouseTracking:
+    case SH_Menu_SupportsSections:
+        return 1;
     default:
         return QCommonStyle::styleHint(sh, opt, w, shret);
     }
+}
+
+void MaterialStyle::removeAnimation()
+{
+    QObject *animation = sender();
+    if (animation)
+        animations.remove(animation->parent());
 }
 
 QPainterPath MaterialStyle::roundRectPath(const QRect &rect) const
@@ -1393,6 +1688,28 @@ QPainterPath MaterialStyle::roundTopBorder(const QRect &rect) const
     //    path.arcTo(QRect(x2 - diam, y2 - diam, diam, diam), 270.0, +90.0);
     //    path.closeSubpath();
     return path;
+}
+
+void MaterialStyle::stopAnimation(const QObject *target) const
+{
+    StyleAnimation *animation = animations.take(target);
+    if (animation) {
+        animation->stop();
+        delete animation;
+    }
+}
+
+StyleAnimation *MaterialStyle::animation(const QObject *target) const
+{
+    return animations.value(target);
+}
+
+void MaterialStyle::startAnimation(StyleAnimation *animation) const
+{
+    stopAnimation(animation->target());
+    connect(animation, SIGNAL(destroyed()), SLOT(removeAnimation()), Qt::UniqueConnection);
+    animations.insert(animation->target(), animation);
+    animation->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *painter, const QWidget *widget) const
@@ -1496,10 +1813,10 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
     textRect.setWidth(btn->rect.width() - 4);
     if (drawTextShadow) {
         painter->setPen(textShadowColor);
-        painter->drawText(textRect.adjusted(1, 3, 2, 2), btn->text);
+        painter->drawText(textRect.adjusted(1, 1, 2, 2), btn->text);
     }
     painter->setPen(textColor);
-    painter->drawText(textRect.adjusted(0, 2, 1, 1), btn->text);
+    painter->drawText(textRect.adjusted(0, 0, 1, 1), btn->text);
 
 }
 

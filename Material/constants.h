@@ -28,6 +28,10 @@
 #define GROUP_BOX_UNDERLINE_WIDTH 2
 #define COMBOBOX_BUTTON_WIDTH 25
 #define SPINBOX_BUTTON_WIDTH COMBOBOX_BUTTON_WIDTH
+#define windowsItemFrame 2
+#define windowsItemHMargin 3
+#define windowsItemVMargin 8
+#define windowsRightBorder 15
 
 //Custom Colors, not palette handled
 #define COLOR_GROUPBOX_TEXT QColor(0, 105, 170)
@@ -45,5 +49,12 @@
 #define COLOR_PALETTE_WINDOW QColor(244, 244, 244)
 #define COLOR_COMBOBOX_SUNKEN QColor(190, 220, 240)
 #define COLOR_COMBOBOX_HOVER QColor(222, 222, 222)
+#define COLOR_BUTTON_TEXT QColor(255, 255, 255)
+#define COLOR_BUTTON_SHADOW QColor(0, 0, 0, 200)
+#define COLOR_PROGRESSBAR_UND_BG QColor(214, 214, 214)
+#define COLOR_MENU_BG QColor(255, 255, 255)
+#define COLOR_PALETTE_HIGHLIGHT QColor(222, 222, 222)
+#define COLOR_PALETTE_TEXT QColor(61, 61, 61)
+#define COLOR_PALETTE_HL_TEXT QColor(50, 50, 50)
 
 #endif // CONSTANTS_H

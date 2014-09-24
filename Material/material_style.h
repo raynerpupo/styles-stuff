@@ -26,7 +26,7 @@
 class QStyleOptionButton;
 class QStyleOptionGroupBox;
 class QStyleOptionSlider;
-//class QStyleOptionTabV3;
+class StyleAnimation;
 
 class MaterialStyle : public QCommonStyle
 {
@@ -51,10 +51,13 @@ public:
 signals:
 
 public slots:
-
+    void removeAnimation();
 private:
     QPainterPath roundRectPath(const QRect &rect) const;
     QPainterPath roundTopBorder(const QRect &rect) const;
+    void stopAnimation(const QObject *target) const;
+    StyleAnimation* animation(const QObject *target) const;
+    void startAnimation(StyleAnimation *animation) const;
 
     QFont groupBoxFont;
     QFont regularFont;
@@ -73,7 +76,7 @@ private:
     //testing
     QPixmap testPxFactory() const;
 
-
+    mutable QHash<const QObject*, StyleAnimation*> animations;
 };
 
 #endif // MATERIAL_STYLE_H

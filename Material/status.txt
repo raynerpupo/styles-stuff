@@ -4,7 +4,12 @@
 -QLineEdit: full
 -QComboBox: full
 -QSpinBox: full
--QTabWidget: east bug
+-QTabWidget: full
+-QProgressBar: full
+-QSlider: full
+-QCheckBox: full
+-QRadioButton: full
+
 
 
 

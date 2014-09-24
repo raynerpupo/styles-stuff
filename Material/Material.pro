@@ -13,11 +13,15 @@ CONFIG += plugin
 DESTDIR = $$[QT_INSTALL_PLUGINS]/styles
 
 SOURCES += material_style_plugin.cpp \
-    material_style.cpp
+    material_style.cpp \
+    style_animation.cpp \
+    progress_style_animation.cpp
 
 HEADERS += material_style_plugin.h \
     material_style.h \
-    constants.h
+    constants.h \
+    style_animation.h \
+    progress_style_animation.h
 OTHER_FILES += Material.json \
     status.txt
 
