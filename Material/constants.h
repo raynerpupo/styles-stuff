@@ -32,6 +32,9 @@
 #define windowsItemHMargin 3
 #define windowsItemVMargin 8
 #define windowsRightBorder 15
+#define menuArrowHMargin 6
+#define menuCheckMarkWidth 12
+#define menuRightBorder 15
 
 //Custom Colors, not palette handled
 #define COLOR_GROUPBOX_TEXT QColor(0, 105, 170)
@@ -56,5 +59,6 @@
 #define COLOR_PALETTE_HIGHLIGHT QColor(222, 222, 222)
 #define COLOR_PALETTE_TEXT QColor(61, 61, 61)
 #define COLOR_PALETTE_HL_TEXT QColor(50, 50, 50)
+#define COLOR_INDICATOR_ARROW QColor(50, 100, 230)
 
 #endif // CONSTANTS_H

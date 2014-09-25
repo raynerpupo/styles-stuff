@@ -48,6 +48,8 @@ public:
     void unpolish(QWidget *widget);
     QRect subElementRect(SubElement subElem, const QStyleOption *opt, const QWidget *widget) const;
     int styleHint(StyleHint sh, const QStyleOption *opt, const QWidget *w, QStyleHintReturn *shret = 0) const;
+    QSize sizeFromContents(ContentsType type, const QStyleOption *option,
+                           const QSize &size, const QWidget *widget) const;
 signals:
 
 public slots:

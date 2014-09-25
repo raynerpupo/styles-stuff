@@ -266,8 +266,74 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
     case PE_IndicatorButtonDropDown:
     case PE_PanelButtonCommand: {
         //TODO hacerlo de verdad
+        bool isDefault = false;
+//        bool isFlat = false;
+//        bool hover = option->state & State_MouseOver;
+        bool isDown = (option->state & State_Sunken) || (option->state & State_On);
+        QRect r = option->rect;
 
-        painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
+        if (const QStyleOptionButton *button = qstyleoption_cast<const QStyleOptionButton*>(option)) {
+            isDefault = (button->features & QStyleOptionButton::DefaultButton) && (button->state & State_Enabled);
+        }
+        if (isDown) {
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing);
+            painter->translate(0.5, 0.5);
+            painter->setBrush(option->palette.window());
+            painter->setPen(COLOR_FRAME_BORDER);
+            painter->drawRoundedRect(r.adjusted(0, 0, -1, -1), 4, 4);
+            painter->restore();
+        }
+    }
+        break;
+    case PE_IndicatorArrowUp:
+    case PE_IndicatorArrowDown:
+    case PE_IndicatorArrowRight:
+    case PE_IndicatorArrowLeft:
+    {
+        QRect r = option->rect;
+        QPainterPath path;
+
+
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->translate(0.5, 0.5);
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(COLOR_TAB_SELECTED_UL);
+
+        if (option->rect.width() <= 1 || option->rect.height() <= 1)
+            break;
+//        int rotation = 0;
+        switch (elem) {
+        case PE_IndicatorArrowUp:
+            path.moveTo(r.bottomLeft());
+            path.lineTo(r.left() + r.width() / 2, r.top());
+            path.lineTo(r.bottomRight());
+            path.lineTo(r.bottomLeft());
+            break;
+        case PE_IndicatorArrowDown:
+            path.moveTo(r.topLeft());
+            path.lineTo(r.left() + r.width() / 2, r.bottom());
+            path.lineTo(r.topRight());
+            path.lineTo(r.topLeft());
+            break;
+        case PE_IndicatorArrowRight:
+            path.moveTo(r.topLeft());
+            path.lineTo(r.right(), r.top() + r.height() / 2);
+            path.lineTo(r.bottomLeft());
+            path.lineTo(r.topLeft());
+            break;
+        case PE_IndicatorArrowLeft:
+            path.moveTo(r.topRight());
+            path.lineTo(r.bottomRight());
+            path.lineTo(r.left(), r.top() + r.height() / 2);
+            path.lineTo(r.topRight());
+            break;
+        default:
+            break;
+        }
+        painter->drawPath(path);
+        painter->restore();
     }
         break;
     default:
@@ -773,6 +839,8 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
             if (qobject_cast<const QComboBox*>(widget))
                 ignoreCheckMark = true; //ignore the checkmarks provided by the QComboMenuDelegate
 
+            bool act = menuItem->state & State_Selected;
+//            bool hover = menuItem->state & State_MouseOver;
             if (!ignoreCheckMark) {
                 // Check
                 QRect checkRect(option->rect.left() + 7, option->rect.center().y() - 6, 14, 14);
@@ -795,8 +863,6 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
                             QStyleOptionButton box;
                             box.QStyleOption::operator=(*option);
                             box.rect = checkRect;
-//                            if (checked)
-//                                box.state |= State_On;
                             box.state = checked ? State_On : State_Off;
                             proxy()->drawPrimitive(PE_IndicatorCheckBox, &box, painter, widget);
                         }
@@ -811,7 +877,6 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
 
             // Text and icon, ripped from windows style
             bool dis = !enabled;
-            bool act = menuItem->state & State_Selected;
             const QStyleOption *opt = option;
             const QStyleOptionMenuItem *menuitem = menuItem;
 
@@ -926,6 +991,43 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
                                            newMI.palette.highlightedText().color());
                 proxy()->drawPrimitive(arrow, &newMI, painter, widget);
             }
+        }
+        painter->restore();
+        break;
+    case CE_MenuBarItem:
+        painter->save();
+        if (const QStyleOptionMenuItem *mbi = qstyleoption_cast<const QStyleOptionMenuItem *>(option))
+        {
+            QRect rect = mbi->rect;
+            QStyleOptionMenuItem item = *mbi;
+            item.rect = mbi->rect.adjusted(0, 1, 0, -3);
+            QColor highlightOutline = option->palette.highlight().color().darker(125);
+//            painter->fillRect(rect, option->palette.window());
+
+//            QCommonStyle::drawControl(ce, &item, painter, widget);
+
+            bool act = mbi->state & State_Selected && mbi->state & State_Sunken;
+            bool dis = !(mbi->state & State_Enabled);
+
+            QRect r = option->rect;
+            if (act) {
+                painter->setBrush(option->palette.highlight().color());
+                painter->setPen(QPen(highlightOutline));
+                painter->drawRect(r.adjusted(0, 0, -1, -1));
+
+                //                painter->drawRoundedRect(r.adjusted(1, 1, -1, -1), 2, 2);
+
+                //draw text
+            }
+            QPalette::ColorRole textRole = dis ? QPalette::Text : QPalette::HighlightedText;
+            uint alignment = Qt::AlignCenter | Qt::TextShowMnemonic | Qt::TextDontClip | Qt::TextSingleLine;
+            if (!styleHint(SH_UnderlineShortcut, mbi, widget))
+                alignment |= Qt::TextHideMnemonic;
+//                QPalette pal = mbi->palette;
+//                pal.setBrush(QPalette::ButtonText, Qt::green);
+//                mbi->palette = pal;
+//                mbi->palette.setBrush(QPalette::ButtonText, Qt::green);
+            proxy()->drawItemText(painter, item.rect, alignment, mbi->palette, mbi->state & State_Enabled, mbi->text, textRole);
         }
         painter->restore();
         break;
@@ -1639,6 +1741,100 @@ int MaterialStyle::styleHint(QStyle::StyleHint sh, const QStyleOption *opt, cons
     default:
         return QCommonStyle::styleHint(sh, opt, w, shret);
     }
+}
+
+QSize MaterialStyle::sizeFromContents(QStyle::ContentsType type, const QStyleOption *option, const QSize &size, const QWidget *widget) const
+{
+    QSize newSize = QCommonStyle::sizeFromContents(type, option, size, widget);
+    switch (type) {
+    case CT_PushButton:
+        if (const QStyleOptionButton *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
+            if (!btn->text.isEmpty() && newSize.width() < 80)
+                newSize.setWidth(80);
+            if (!btn->icon.isNull() && btn->iconSize.height() > 16)
+                newSize -= QSize(0, 2);
+        }
+        break;
+    case CT_GroupBox:
+        if (option) {
+            int topMargin = qMax(pixelMetric(PM_ExclusiveIndicatorHeight), option->fontMetrics.height()) + GROUP_BOX_TOP_MARGIN;
+            newSize += QSize(10, topMargin); // Add some space below the groupbox
+        }
+        break;
+    case CT_RadioButton:
+    case CT_CheckBox:
+        newSize += QSize(0, 1);
+        break;
+    case CT_ToolButton:
+        newSize += QSize(2, 2);
+        break;
+    case CT_SpinBox:
+        newSize += QSize(0, -3);
+        break;
+    case CT_ComboBox:
+        newSize += QSize(2, 4);
+        break;
+    case CT_LineEdit:
+        newSize += QSize(0, 4);
+        break;
+    case CT_MenuBarItem:
+        newSize += QSize(8, 5);
+        break;
+    case CT_MenuItem:
+        if (const QStyleOptionMenuItem *menuItem = qstyleoption_cast<const QStyleOptionMenuItem *>(option)) {
+            int w = newSize.width();
+            int maxpmw = menuItem->maxIconWidth;
+            int tabSpacing = 20;
+            if (menuItem->text.contains(QLatin1Char('\t')))
+                w += tabSpacing;
+            else if (menuItem->menuItemType == QStyleOptionMenuItem::SubMenu)
+                w += 2 * menuArrowHMargin;
+            else if (menuItem->menuItemType == QStyleOptionMenuItem::DefaultItem) {
+                QFontMetrics fm(menuItem->font);
+                QFont fontBold = menuItem->font;
+                fontBold.setBold(true);
+                QFontMetrics fmBold(fontBold);
+                w += fmBold.width(menuItem->text) - fm.width(menuItem->text);
+            }
+            int checkcol = qMax<int>(maxpmw, menuCheckMarkWidth); // Windows always shows a check column
+            w += checkcol;
+            w += int(menuRightBorder) + 10;
+            newSize.setWidth(w);
+            if (menuItem->menuItemType == QStyleOptionMenuItem::Separator) {
+                if (!menuItem->text.isEmpty()) {
+                    newSize.setHeight(menuItem->fontMetrics.height());
+                }
+            }
+            else if (!menuItem->icon.isNull()) {
+                if (const QComboBox *combo = qobject_cast<const QComboBox*>(widget)) {
+                    newSize.setHeight(qMax(combo->iconSize().height() + 2, newSize.height()));
+                }
+            }
+            newSize.setWidth(newSize.width() + 12);
+            newSize.setWidth(qMax(newSize.width(), 120));
+        }
+        break;
+    case CT_SizeGrip:
+        newSize += QSize(4, 4);
+        break;
+    case CT_MdiControls:
+        if (const QStyleOptionComplex *styleOpt = qstyleoption_cast<const QStyleOptionComplex *>(option)) {
+            int width = 0;
+            if (styleOpt->subControls & SC_MdiMinButton)
+                width += 19 + 1;
+            if (styleOpt->subControls & SC_MdiNormalButton)
+                width += 19 + 1;
+            if (styleOpt->subControls & SC_MdiCloseButton)
+                width += 19 + 1;
+            newSize = QSize(width, 19);
+        } else {
+            newSize = QSize(60, 19);
+        }
+        break;
+    default:
+        break;
+    }
+    return newSize;
 }
 
 void MaterialStyle::removeAnimation()
