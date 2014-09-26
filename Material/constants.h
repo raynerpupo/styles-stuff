@@ -60,5 +60,6 @@
 #define COLOR_PALETTE_TEXT QColor(61, 61, 61)
 #define COLOR_PALETTE_HL_TEXT QColor(50, 50, 50)
 #define COLOR_INDICATOR_ARROW QColor(50, 100, 230)
+#define COLOR_TOOLBAR_BG QColor(235, 235, 235)
 
 #endif // CONSTANTS_H

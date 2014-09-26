@@ -61,6 +61,8 @@ private:
     StyleAnimation* animation(const QObject *target) const;
     void startAnimation(StyleAnimation *animation) const;
 
+    void drawArrow(QPainter *painter, Qt::ArrowType type, const QColor &color, const QRect &rect) const;
+
     QFont groupBoxFont;
     QFont regularFont;
 
