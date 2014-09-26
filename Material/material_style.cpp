@@ -96,31 +96,68 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
     }
     case PE_IndicatorCheckBox: {
         const QStyleOptionButton *checkBox = qstyleoption_cast<const QStyleOptionButton *>(option);
+        bool enabled = checkBox->state & State_Enabled;
+        QColor fgColor = enabled ? COLOR_INDICATORS_FG : COLOR_FG_DISABLED;
+        painter->save();
+        painter->setRenderHint(QPainter::Antialiasing);
+        painter->translate(0.5, 0.5);
+        painter->setPen(fgColor);
+        painter->setBrush(COLOR_INDICATORS_BG);
         QRect indRect = subElementRect(SE_CheckBoxIndicator, option, widget);
+//        qDebug() << indRect;
         indRect.moveTo(option->rect.topLeft());
+        QRect r = indRect.adjusted(2, 2, -2, -2);
+//        r.moveTo(0, 0);
+
+        painter->drawRoundedRect(indRect, 2, 2);
+
         if (checkBox->state & QStyle::State_Off) {
-            QPixmap pxm(":/images/images/check_box_state0.png");
-            qDrawBorderPixmap(painter, indRect, QMargins(2, 2, 2, 2), pxm);
+//            QPixmap pxm(":/images/images/check_box_state0.png");
+//            qDrawBorderPixmap(painter, indRect, QMargins(2, 2, 2, 2), pxm);
+
         }
         else if (checkBox->state & QStyle::State_On) {
-            QPixmap pxm(":/images/images/check_box_state1.png");
-            qDrawBorderPixmap(painter, indRect, QMargins(3, 3, 3, 3), pxm);
+//            QPixmap pxm(":/images/images/check_box_state1.png");
+//            qDrawBorderPixmap(painter, indRect, QMargins(3, 3, 3, 3), pxm);
+            painter->fillRect(r, fgColor);
         }
         else {
-            QPixmap pxm(":/images/images/check_box_state2.png");
-            painter->drawPixmap(indRect.topLeft(), pxm);
+//            QPixmap pxm(":/images/images/check_box_state2.png");
+//            painter->drawPixmap(indRect.topLeft(), pxm);
+            r.adjust(0, 0, 1, 1);
+            QPainterPath path(r.topLeft());
+            path.lineTo(r.bottomLeft());
+            path.lineTo(r.bottomRight());
+            path.closeSubpath();
+            painter->setBrush(fgColor);
+            painter->drawPath(path);
         }
+
+        painter->restore();
         break;
     }
     case PE_IndicatorRadioButton: {
         const QStyleOptionButton *btn = qstyleoption_cast<const QStyleOptionButton *>(option);
         if (btn) {
             bool checked = btn->state & QStyle::State_On;
-            QString iconRes = checked ? ":/images/images/qradiobutton_chacked.png" :
-                                        ":/images/images/qradiobutton.png";
-            QIcon icon(iconRes);
-            QIcon::State st = btn->state & QStyle::State_Enabled ? QIcon::On : QIcon::Off;
-            icon.paint(painter, btn->rect, Qt::AlignCenter, QIcon::Normal, st);
+            bool enabled = btn->state & State_Enabled;
+//            QString iconRes = checked ? ":/images/images/qradiobutton_chacked.png" :
+//                                        ":/images/images/qradiobutton.png";
+//            QIcon icon(iconRes);
+//            QIcon::State st = btn->state & QStyle::State_Enabled ? QIcon::On : QIcon::Off;
+//            icon.paint(painter, btn->rect, Qt::AlignCenter, QIcon::Normal, st);
+            painter->save();
+            painter->setRenderHint(QPainter::Antialiasing);
+            painter->translate(0.5, 0.5);
+            painter->setBrush(COLOR_INDICATORS_BG);
+            painter->setPen(QPen(enabled ? COLOR_INDICATORS_FG : COLOR_FG_DISABLED, 1));
+            painter->drawEllipse(btn->rect);
+
+            if (checked) {
+                painter->setBrush(painter->pen().color());
+                painter->drawEllipse(btn->rect.adjusted(3, 3, -3, -3));
+            }
+            painter->restore();
         }
         break;
     }
@@ -210,13 +247,15 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
     }
         break ;
     case PE_IndicatorTabClose: {
-        QStyleHintReturn *hr = 0;
+//        QStyleHintReturn *hr = 0;
+        if ((option->state & State_Enabled) && (option->state & State_MouseOver))
+            proxy()->drawPrimitive(PE_PanelButtonCommand, option, painter, widget);
         QPixmap px(":/images/images/tab_close.png");
         QCommonStyle::drawItemPixmap(painter, option->rect, Qt::AlignCenter, px);
-        if (option->state & State_MouseOver) {
-            painter->setPen(QPen(COLOR_TAB_NORMAL_UL));
-            painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
-        }
+//        if (option->state & State_MouseOver) {
+//            painter->setPen(QPen(COLOR_TAB_NORMAL_UL));
+//            painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
+//        }
         break;
     }
     case PE_PanelScrollAreaCorner: {
@@ -289,7 +328,7 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         painter->setRenderHint(QPainter::Antialiasing);
         painter->translate(0.5, 0.5);
         painter->setPen(COLOR_FRAME_BORDER);
-        painter->drawRoundedRect(r.adjusted(0, 0, -1, -1), 4, 4);
+        painter->drawRoundedRect(r.adjusted(0, 0, -1, -1), 2, 2);
         painter->restore();
     }
         break;
@@ -387,6 +426,13 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         }
         painter->restore();
         break;
+//    case PE_PanelToolBar:
+//        qDebug() << "PE_PanelToolBar";
+//        painter->fillRect(option->rect, Qt::blue);
+//        break;
+//    case :
+//        painter->fillRect(option->rect, Qt::blue);
+//        break;
     default:
         QCommonStyle::drawPrimitive(elem, option, painter, widget);
         break;
@@ -396,13 +442,13 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
 void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *option, QPainter *painter, const QWidget *widget) const
 {
     switch (ce) {
-    case QStyle::CE_PushButton:
+    case CE_PushButton:
         if (const QStyleOptionButton *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
             drawPushButton(btn, painter, widget);
         }
         break;
-    case QStyle::CE_RadioButton:
-    case QStyle::CE_CheckBox: {
+    case CE_RadioButton:
+    case CE_CheckBox: {
         if (const QStyleOptionButton *btn = qstyleoption_cast<const QStyleOptionButton *>(option)) {
             bool isRadio = (ce == CE_RadioButton);
             QStyleOptionButton subopt = *btn;
@@ -1136,6 +1182,28 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
     }
         painter->restore();
         break;
+    case CE_RubberBand:
+        if (qstyleoption_cast<const QStyleOptionRubberBand *>(option)) {
+            QColor highlight = option->palette.color(QPalette::Active, QPalette::Highlight);
+            painter->save();
+            QColor penColor = highlight.darker(120);
+            penColor.setAlpha(180);
+            painter->setPen(penColor);
+            QColor dimHighlight(qMin(highlight.red()/2 + 110, 255),
+                                qMin(highlight.green()/2 + 110, 255),
+                                qMin(highlight.blue()/2 + 110, 255));
+            dimHighlight.setAlpha(widget && widget->isTopLevel() ? 255 : 80);
+            painter->setRenderHint(QPainter::Antialiasing, true);
+            painter->translate(0.5, 0.5);
+            painter->setBrush(dimHighlight);
+            painter->drawRoundedRect(option->rect.adjusted(0, 0, -1, -1), 1, 1);
+            QColor innerLine = Qt::white;
+            innerLine.setAlpha(40);
+            painter->setPen(innerLine);
+            painter->drawRoundedRect(option->rect.adjusted(1, 1, -2, -2), 1, 1);
+            painter->restore();
+            return;
+        }
     default:
         QCommonStyle::drawControl(ce, option, painter, widget);
         break;
@@ -2093,7 +2161,9 @@ void MaterialStyle::drawArrow(QPainter *painter, Qt::ArrowType type, const QColo
 void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *painter, const QWidget *widget) const
 {
     Q_UNUSED(widget)
+    painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
+    painter->translate(0.5, 0.5);
     //Draw the background
     bool drawGlowLine = true;
     painter->setPen(QPen(Qt::black, 1));
@@ -2104,7 +2174,7 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
     QLinearGradient grad(0, 0, 0, btnRect.height());
     //    painter->fillRect(btn->rect, Qt::red);
     bool drawTextShadow = false;
-    QPixmap borderPxm;
+//    QPixmap borderPxm;
 
     if (btn->state & State_Enabled) {
         if (btn->state & State_HasFocus && btn->state & State_KeyboardFocusChange) {
@@ -2114,11 +2184,11 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
             grad.setColorAt(0.0, btn->palette.color(QPalette::Dark));
             grad.setColorAt(1.0, btn->palette.color(QPalette::Light));
             textColor = btn->palette.color(QPalette::ButtonText);
-            //            textColor.setNamedColor("White");
             textShadowColor = btn->palette.color(QPalette::Shadow);
             textShadowColor.setAlpha(25 * 255 / 100);
-            borderPxm = QPixmap(":/images/images/push_button_normal.png");
+//            borderPxm = QPixmap(":/images/images/push_button_normal.png");
             drawTextShadow = true;
+//            borderColor = COLOR_PUSHBUTTON_BORDER_NORMAL;
         }
         else if (btn->state & (State_MouseOver)) {
             grad.setColorAt(0.0, btn->palette.midlight().color());
@@ -2127,8 +2197,9 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
             textColor = btn->palette.color(QPalette::BrightText);
             textShadowColor = btn->palette.color(QPalette::ButtonText);
             textShadowColor.setAlpha(40 * 255 / 100);
-            borderPxm = QPixmap(":/images/images/push_button_hover.png");
+//            borderPxm = QPixmap(":/images/images/push_button_hover.png");
             drawTextShadow = true;
+//            borderColor = COLOR_PUSHBUTTON_BORDER_NORMAL;
         }
         else {
             grad.setColorAt(0.0, btn->palette.color(QPalette::Light));
@@ -2136,19 +2207,32 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
             textColor = btn->palette.color(QPalette::ButtonText);
             textShadowColor = btn->palette.color(QPalette::Shadow);
             textShadowColor.setAlpha(25 * 255 / 100);
-            borderPxm = QPixmap(":/images/images/push_button_normal.png");
+//            borderPxm = QPixmap(":/images/images/push_button_normal.png");
             drawTextShadow = true;
+//            borderColor = COLOR_PUSHBUTTON_BORDER_NORMAL;
         }
         painter->setBrush(grad);
-        painter->setPen(Qt::NoPen);
+        painter->setPen(COLOR_PUSHBUTTON_BORDER_NORMAL);
         painter->drawPath(roundRectPath(btnRect.adjusted(1, 1, 0, 0)));
+        if (drawGlowLine) {
+            painter->save();
+            painter->setClipRect(btnRect.adjusted(1, 1, -2, -(btnRect.height() - 4)));
+//            painter->fillRect(btnRect, QColor(255, 0, 0, 100));
+            painter->setBrush(Qt::NoBrush);
+            painter->setPen(COLOR_PUSHBUTTON_GLOW);
+            painter->drawRoundedRect(btnRect.adjusted(2, 2, -2, -1), 2, 2);
+            painter->restore();
+        }
     }
     else {
-        borderPxm = QPixmap(":/images/images/push_button_disabled.png");
+//        borderPxm = QPixmap(":/images/images/push_button_disabled.png");
         textColor = btn->palette.color(QPalette::Disabled, QPalette::ButtonText);
+        painter->setPen(COLOR_PUSHBUTTON_BORDER_DISABLED);
+        painter->setBrush(btn->palette.window());
+        painter->drawRoundedRect(btnRect, 2, 2);
     }
 
-    qDrawBorderPixmap(painter, btnRect, QMargins(4, 5, 4, 4), borderPxm);
+//    qDrawBorderPixmap(painter, btnRect, QMargins(4, 5, 4, 4), borderPxm);
 
 
 
@@ -2196,6 +2280,7 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
     painter->setPen(textColor);
     painter->drawText(textRect.adjusted(0, 0, 1, 1), btn->text);
 
+    painter->restore();
 }
 
 void MaterialStyle::drawGroupBox(const QStyleOptionGroupBox *groupBox, QPainter *painter, const QWidget *widget) const

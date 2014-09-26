@@ -1,5 +1,5 @@
--QPushButton: full
--QGroupBox: full
+-QPushButton: imag
+-QGroupBox: imag
 -QFrame: full
 -QLineEdit: full
 -QComboBox: full
@@ -9,7 +9,8 @@
 -QSlider: full
 -QCheckBox: full
 -QRadioButton: full
-
+-QToolBar: full
+-QToolButton: full
 
 
 
