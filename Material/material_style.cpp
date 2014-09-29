@@ -30,6 +30,8 @@
 #include <QFontDatabase>
 #include <QDirIterator>
 #include <QMainWindow>
+#include <QToolBox>
+#include <QLayout>
 #include "progress_style_animation.h"
 #include "style_animation.h"
 
@@ -44,7 +46,7 @@ MaterialStyle::MaterialStyle()
     groupBoxFont.setBold(true);
     //    groupBoxFont.setStyleStrategy(QFont::NoAntialias);
 
-    regularFont = QFont("Myriad Pro", 9);
+    regularFont = QFont("Myriad Pro", 10);
     //    regularFont.setLetterSpacing(QFont::AbsoluteSpacing, 0.7);
     //    regularFont.setWeight(5);
     //    regularFont.setPixelSize(2);
@@ -55,42 +57,43 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
 {
     switch (elem) {
     case PE_FrameGroupBox: {
-        painter->setRenderHint(QPainter::Antialiasing);
-        QFontMetrics fm(groupBoxFont);
-        const QStyleOptionGroupBox *groupBox = qstyleoption_cast<const QStyleOptionGroupBox *>(option);
-        QRect textRect = fm.boundingRect(groupBox->text);
-        textRect.moveTo(0, 0);
-        QPixmap bPix(":/images/images/group_box_bottom.png");
-        int hExtra = 0;
-        int indW = 0;
-        QPixmap tPix;
-        int glue = 0;
-        if (groupBox->subControls & SC_GroupBoxLabel) {
-            hExtra = 2 * GROUP_BOX_TEXT_V_MARGIN;
-            tPix = QPixmap(":/images/images/group_box_top.png");
-        }
-        else if (groupBox->subControls & SC_GroupBoxCheckBox) {
-            hExtra = 2 * GROUP_BOX_TEXT_V_MARGIN;
-            tPix = QPixmap(":/images/images/group_box_top.png");
-            indW = pixelMetric(PM_IndicatorWidth, option, widget);
-        }
-        else {
-            hExtra = 0;
-            QTransform tranf;
-            tranf.rotate(180);
-            tPix = bPix.transformed(tranf);
-            glue = 4;
-        }
-        int yDiv = hExtra + qMax(textRect.height(), indW) + glue;
-        QRect topFrame(0, 0, groupBox->rect.width(), yDiv);
-        QRect bottomFrame(0, yDiv, groupBox->rect.width(), groupBox->rect.height() - yDiv - 1);
-        if (groupBox->subControls & SC_GroupBoxLabel || groupBox->subControls & SC_GroupBoxCheckBox) {
-            qDrawBorderPixmap(painter, topFrame, QMargins(4, 4, 4, 4), tPix);
-            qDrawBorderPixmap(painter, bottomFrame, QMargins(4, 4, 4, 4), bPix);
-        }
-        else {
-            QPixmap px(":/images/images/frame.png");
-            qDrawBorderPixmap(painter, groupBox->rect, QMargins(4, 4, 4, 4), px);
+        if (const QStyleOptionGroupBox *groupBox = qstyleoption_cast<const QStyleOptionGroupBox *>(option)) {
+            QRect fullRect = subControlRect(CC_GroupBox, groupBox, SC_GroupBoxFrame, widget);
+            QRect contentsRect = subControlRect(CC_GroupBox, groupBox, SC_GroupBoxContents, widget);
+//            QRect indRect = subControlRect(CC_GroupBox, groupBox, SC_GroupBoxCheckBox, widget);
+            QRect labelRect = subControlRect(CC_GroupBox, groupBox, SC_GroupBoxLabel, widget);
+
+            //Draw the border
+            painter->save();
+            prepareSmothPainter(painter);
+            painter->setPen(COLOR_FRAME_BORDER);
+//            painter->setPen(QPen(COLOR_FRAME_BORDER, 2));
+            painter->setBrush(option->palette.window());
+            painter->drawRoundedRect(fullRect.adjusted(0, 0, -1, -1), 4, 4);
+            //Draw the header
+            if (contentsRect.top() > 8) {
+                painter->save();
+                painter->setClipRect(0, 0, fullRect.width(), contentsRect.top());
+                painter->setBrush(COLOR_GROUPBOX_HEADER);
+                painter->drawRoundedRect(fullRect.adjusted(0, 0, -1, -1), 4, 4);
+                //Draw the text underline
+                if (groupBox->subControls & SC_GroupBoxLabel) {
+                    painter->translate(-0.5, -0.5);
+                    painter->setPen(QPen(COLOR_FRAME_BORDER, 2));
+                    painter->drawLine(0, contentsRect.top() - 1, labelRect.left(), contentsRect.top() - 1);
+                    painter->setPen(QPen(COLOR_GROUPBOX_TEXT, 2));
+                    painter->drawLine(labelRect.left(), contentsRect.top() - 1, labelRect.right(), contentsRect.top() - 1);
+                    painter->setPen(QPen(COLOR_FRAME_BORDER, 2));
+                    painter->drawLine(labelRect.right(), contentsRect.top() - 1, fullRect.right(), contentsRect.top() - 1);
+                } else if (groupBox->subControls & SC_GroupBoxCheckBox) {
+                    painter->translate(-0.5, -0.5);
+                    painter->setPen(QPen(COLOR_FRAME_BORDER, 2));
+                    painter->drawLine(0, contentsRect.top() - 1, fullRect.right(), contentsRect.top() - 1);
+                }
+                painter->restore();
+            }
+
+            painter->restore();
         }
         break;
     }
@@ -162,34 +165,33 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         break;
     }
     case PE_FrameFocusRect: {
-        ////        QPen dashedPen(QColor());
-        //        painter->setOpacity(0.2);
-        ////        painter->fillRect(option->rect, Qt::blue);
-        //        painter->drawRoundedRect(option->rect.adjusted(0, 0, -1, -1), 3, 3);
-        QPixmap px(":/images/images/frame.png");
-        qDrawBorderPixmap(painter, option->rect, QMargins(4, 4, 4, 4), px);
+        painter->save();
+        prepareSmothPainter(painter);
+        painter->setPen(QPen(COLOR_FRAME_BORDER, 1/*, Qt::DashLine, Qt::RoundCap*/));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRoundedRect(option->rect.adjusted(0, 0, -1, -1), 2, 2);
+        painter->restore();
         break;
     }
-    case PE_Frame:{
-        painter->setPen(COLOR_FRAME_BORDER);
-        painter->setBrush(COLOR_PALETTE_WINDOW);
-        painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
-    }
-        break;
-    case PE_FrameMenu:
-        if (const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(option)) {
-            //            if (elem == PE_FrameMenu || (frame->state & State_Sunken) || (frame->state & State_Raised)) {
-            //                QPixmap px(":/images/images/frame.png");
-            //                qDrawBorderPixmap(painter, frame->rect, QMargins(4, 4, 4, 4), px);
-            //            } else {
-            //                qDrawPlainRect(painter, frame->rect, COLOR_FRAME_BORDER, frame->lineWidth);
-            //            }
-            painter->setPen(COLOR_FRAME_BORDER);
-            //TODO only for testing
-            painter->setBrush(Qt::red);
-            painter->drawRect(frame->rect.adjusted(0, 0, -1, -1));
-        }
-        break;
+//    case PE_Frame:{
+//        qDebug() << "pe_frame";
+//        painter->setPen(COLOR_FRAME_BORDER);
+//        painter->setBrush(option->palette.window());
+//        painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
+//        painter->save();
+//        prepareSmothPainter(painter);
+//        painter->drawRoundedRect(option->rect.adjusted(0, 0, -1, -1), 8, 8);
+//        painter->restore();
+//    }
+//        break;
+//    case PE_FrameMenu:
+//        if (const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(option)) {
+//            painter->setPen(COLOR_FRAME_BORDER);
+//            //TODO only for testing
+//            painter->setBrush(Qt::red);
+//            painter->drawRect(frame->rect.adjusted(0, 0, -1, -1));
+//        }
+//        break;
     case PE_PanelMenuBar: {
         //TODO only for testing
         qDebug() << "PE_PanelMenuBar";
@@ -203,59 +205,73 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
     }
         break;
-    case PE_FrameTabWidget: {
-        //        painter->fillRect(option->rect, QColor(255, 0 ,0, 100));
-        QPixmap px(":/images/images/tabwidget_frame.png");
+    case PE_FrameTabWidget:
         if (const QStyleOptionTabWidgetFrame *tWidget = qstyleoption_cast<const QStyleOptionTabWidgetFrame *>(option)) {
-            QTransform matrix;
-            if (tWidget->shape == QTabBar::RoundedEast) {
-                matrix.rotate(+90);
-            } else if (tWidget->shape == QTabBar::RoundedSouth) {
-                matrix.rotate(+180);
-            } else if (tWidget->shape == QTabBar::RoundedWest) {
-                matrix.rotate(+270);
-            }
-            QPixmap pxTransf = px.transformed(matrix);
-            qDrawBorderPixmap(painter, option->rect, QMargins(4, 4, 4, 4), pxTransf);
+        int x, y, x1, y1;
+        option->rect.getCoords(&x, &y, &x1, &y1);
+        int radius = 4;
+        int diam = radius * 2;
+
+        QPainterPath path;
+        if (tWidget->shape == QTabBar::RoundedNorth) {
+            path.moveTo(x, y);
+            path.lineTo(x, y1 - radius);
+            path.arcTo(QRect(x, y1 - diam, diam, diam), 180.0, +90.0);
+            path.lineTo(x1 - radius, y1);
+            path.arcTo(QRect(x1 - diam, y1 - diam, diam, diam), 270, 90);
+            path.lineTo(x1, y);
+            path.closeSubpath();
+        } else if (tWidget->shape == QTabBar::RoundedEast) {
+            path.moveTo(x1, y);
+            path.lineTo(x + radius, y);
+            path.arcTo(QRect(x, y, diam, diam), 90, 90);
+            path.lineTo(x, y1 - radius);
+            path.arcTo(QRect(x, y1 - diam, diam, diam), 180.0, +90.0);
+            path.lineTo(x1, y1);
+            path.closeSubpath();
+        } else if (tWidget->shape == QTabBar::RoundedSouth) {
+            path.moveTo(x1, y1);
+            path.lineTo(x1, y + radius);
+            path.arcTo(QRect(x1 - diam, y, diam, diam), 0, 90);
+            path.lineTo(x + radius, y);
+            path.arcTo(QRect(x, y, diam, diam), 90, 90);
+            path.lineTo(x, y1);
+            path.closeSubpath();
+        } else {
+            path.moveTo(x, y);
+            path.lineTo(x, y1);
+            path.lineTo(x1 - radius, y1);
+            path.arcTo(QRect(x1 - diam, y1 - diam, diam, diam), 270, 90);
+            path.lineTo(x1, y + radius);
+            path.arcTo(QRect(x1 - diam, y, diam, diam), 0, 90);
+            path.closeSubpath();
         }
 
-        //        painter->save();
-        //        painter->fillRect(option->rect.adjusted(0, 0, -1, -1), tabFrameColor);
-        //        if (const QStyleOptionTabWidgetFrame *twf = qstyleoption_cast<const QStyleOptionTabWidgetFrame *>(option)) {
-        //            QColor borderColor = outline.lighter(110);
-        //            QRect rect = option->rect.adjusted(0, 0, -1, -1);
-
-        //            // Shadow outline
-        //            if (twf->shape != QTabBar::RoundedSouth) {
-        //                rect.adjust(0, 0, 0, -1);
-        //                QColor alphaShadow(Qt::black);
-        //                alphaShadow.setAlpha(15);
-        //                painter->setPen(alphaShadow);
-        //                painter->drawLine(option->rect.bottomLeft(), option->rect.bottomRight());            painter->setPen(borderColor);
-        //            }
-
-        //            // outline
-        //            painter->setPen(outline);
-        //            painter->drawRect(rect);
-
-        //            // Inner frame highlight
-        //            painter->setPen(d->innerContrastLine());
-        //            painter->drawRect(rect.adjusted(1, 1, -1, -1));
-
-        //        }
-        //        painter->restore();
+        painter->save();
+        prepareSmothPainter(painter);
+        painter->setPen(COLOR_FRAME_BORDER);
+        painter->drawPath(path);
+        painter->restore();
     }
         break ;
     case PE_IndicatorTabClose: {
 //        QStyleHintReturn *hr = 0;
         if ((option->state & State_Enabled) && (option->state & State_MouseOver))
             proxy()->drawPrimitive(PE_PanelButtonCommand, option, painter, widget);
-        QPixmap px(":/images/images/tab_close.png");
-        QCommonStyle::drawItemPixmap(painter, option->rect, Qt::AlignCenter, px);
-//        if (option->state & State_MouseOver) {
-//            painter->setPen(QPen(COLOR_TAB_NORMAL_UL));
-//            painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
-//        }
+//        QPixmap px(":/images/images/tab_close.png");
+//        QCommonStyle::drawItemPixmap(painter, option->rect, Qt::AlignCenter, px);
+        int indWidth = pixelMetric(PM_TabCloseIndicatorWidth, option, widget);
+        int indHeight = pixelMetric(PM_TabCloseIndicatorHeight, option, widget);
+        QRect indRect(0, 0, indWidth, indHeight);
+        indRect.moveCenter(option->rect.center());
+        painter->save();
+        prepareSmothPainter(painter);
+        painter->setPen(QPen(COLOR_FRAME_BORDER, 2));
+//        painter->drawRect(indRect);
+//        painter->setPen(Qt::blue);
+        painter->drawLine(indRect.left(), indRect.top(), indRect.right() + 1, indRect.bottom() + 1);
+        painter->drawLine(indRect.right() + 1, indRect.top(), indRect.left(), indRect.bottom() + 1);
+        painter->restore();
         break;
     }
     case PE_PanelScrollAreaCorner: {
@@ -269,14 +285,6 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
     }
         break;
     case PE_FrameLineEdit: {
-        //        QRect r = option->rect;
-        //        bool hasFocus = option->state & State_HasFocus;
-
-        //        painter->save();
-        //        QString pxStr = hasFocus ? ":/images/images/edit_frame_active.png" :
-        //                                   ":/images/images/edit_frame.png";
-        //        QPixmap pxm(pxStr);
-        //        qDrawBorderPixmap(painter, r, QMargins(4, 4, 4, 4), pxm);
         QRect r = option->rect;
         bool hasFocus = option->state & State_HasFocus;
 
@@ -398,15 +406,15 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         if (option->state & State_Horizontal) {
             for (int i = -3 ; i < 2 ; i += 3) {
                 for (int j = -8 ; j < 10 ; j += 3) {
-                    painter->fillRect(rect.center().x() + i, rect.center().y() + j, 2, 2, COLOR_TOOLBAR_BG.lighter(80));
-                    painter->fillRect(rect.center().x() + i, rect.center().y() + j, 1, 1, COLOR_TOOLBAR_BG.darker(80));
+                    painter->fillRect(rect.center().x() + i, rect.center().y() + j, 2, 2, COLOR_TOOLBAR_BG.lighter(105));
+                    painter->fillRect(rect.center().x() + i, rect.center().y() + j, 1, 1, COLOR_TOOLBAR_BG.darker(120));
                 }
             }
         } else { //vertical toolbar
             for (int i = -6 ; i < 12 ; i += 3) {
                 for (int j = -3 ; j < 2 ; j += 3) {
-                    painter->fillRect(rect.center().x() + i, rect.center().y() + j, 2, 2, COLOR_TOOLBAR_BG.lighter(80));
-                    painter->fillRect(rect.center().x() + i, rect.center().y() + j, 1, 1, COLOR_TOOLBAR_BG.darker(80));
+                    painter->fillRect(rect.center().x() + i, rect.center().y() + j, 2, 2, COLOR_TOOLBAR_BG.lighter(105));
+                    painter->fillRect(rect.center().x() + i, rect.center().y() + j, 1, 1, COLOR_TOOLBAR_BG.darker(120));
                 }
             }
         }
@@ -432,6 +440,9 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
 //        break;
 //    case :
 //        painter->fillRect(option->rect, Qt::blue);
+//        break;
+//    case PE_FrameWindow:
+//        painter->fillRect(option->rect, Qt::green);
 //        break;
     default:
         QCommonStyle::drawPrimitive(elem, option, painter, widget);
@@ -518,8 +529,6 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
             int y1 = r2.top();
             int y2 = r2.bottom();
 
-            painter->setPen(Qt::red);
-
             QTransform rotMatrix;
             bool flip = false;
             //            painter->setPen(Qt::blue);
@@ -562,106 +571,43 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
                 y2 = temp;
             }
 
-            painter->translate(0.5, 0.5);
-            QString px1Str;
-            QString px2Str;
-            QString statusStr;
-            if (selected) {
-                statusStr = "sunken";
-            } else if (hover) {
-                statusStr = "hover";
-            } else {
-                statusStr = "normal";
-            }
+            prepareSmothPainter(painter);
+            painter->setPen(COLOR_FRAME_BORDER);
+            painter->setBrush(selected ? COLOR_GROUPBOX_HEADER : hover ? option->palette.highlight() : option->palette.window());
+            QPainterPath path;
 
-            if (onlyOne) {
-                px1Str = QString(":/images/images/tab_%1_rounded.png").arg(statusStr);
-                px2Str = QString(":/images/images/tab_%1_rounded.png").arg(statusStr);
+            int radius = 4;
+            int diam = radius * 2;
+            if (firstTab || onlyOne) {
+                path.moveTo(x2, y2);
+                path.lineTo(x1, y2);
+                path.lineTo(x1, y1 + radius);
+                path.arcTo(QRect(x1, y1, diam, diam), 180, -90);
             }
-            else {
-                if (firstTab) {
-                    px1Str = QString(":/images/images/tab_%1_rounded.png").arg(statusStr);
-                    px2Str = QString(":/images/images/tab_%1_squared.png").arg(statusStr);
-                } else if (lastTab) {
-                    px1Str = QString(":/images/images/tab_%1_squared.png").arg(statusStr);
-                    px2Str = QString(":/images/images/tab_%1_rounded.png").arg(statusStr);
-                } else {
-                    px1Str = QString(":/images/images/tab_%1_squared.png").arg(statusStr);
-                }
-            }
-
-            painter->translate(0.5, 0.5);//para corregir problema de East por bug de QPainter + hidpi
-            QPixmap px1(px1Str);
-            int test = 0;
-            //            painter->setRenderHint(QPainter::Antialiasing);
-            if (px2Str.isEmpty()) { //una intermedia
-                qDrawBorderPixmap(painter, rect.adjusted(-1, test, -1, 0), QMargins(4, 4, 4, 4), px1);
-                //                painter->drawPixmap(0, 0, px1);
-            }
-            else {
-                QPixmap px2(px2Str);
-                //                QRect lRect = rect.adjusted(0, 0, -rect.width() / 2, 0);
-                int cosmeticOffset = 1;
-                qDrawBorderPixmap(painter, rect.adjusted(-cosmeticOffset, test, -rect.width() / 2, 0), QMargins(4, 4, 4, 4), px1);
-                if (!px2Str.contains("squared", Qt::CaseInsensitive)) { //la ultima
-                    px2 = QPixmap::fromImage(QImage(px2Str).mirrored(true, false));
-                    qDrawBorderPixmap(painter, rect.adjusted(rect.width() / 2, test, -1, 0),
-                                      QMargins(4, 4, 4, 4), px2);
-                }
-                else {
-                    qDrawBorderPixmap(painter, rect.adjusted(rect.width() / 2, test, -1, 0),
-                                      QMargins(4, 4, 4, 4), px2);
-                }
-            }
-
-            //            //###########temporal workaround
-            //            if (tab->shape == QTabBar::RoundedEast) {
-            //                qDebug() << "siiiiiiiiiiiii";
-            //                painter->setPen(QPen(QColor(255, 0, 0, 50), 5));
-            //                QPoint p1 = rect.topLeft();
-            //                QPoint p2 = rect.topRight();
-            //                p1.rx() += 4;
-            ////                p1.ry() += 1;
-            //                p2.rx() -= 4;
-            ////                p2.ry() += 1;
-            ////                painter->drawLine(p1, p2);
-            //            }
-
-            //draw the underline
-            QColor uLineColor = selected ? COLOR_TAB_SELECTED_UL : COLOR_TAB_NORMAL_UL;
-            painter->setPen(QPen(uLineColor, 2));
-            QPoint p1 = rect.bottomLeft();
-            p1.ry() -= 1;
-            QPoint p2 = rect.bottomRight();
-            p2.ry() -= 1;
-            p2.rx() -= 1;
-            painter->drawLine(p1, p2);
-
-            //draw the separation
             if (!(lastTab || onlyOne)) {
-                int sepMargin = 1;
-                painter->setPen(QPen(COLOR_TAB_SEPARATOR, 1));
-                painter->drawLine(rect.right() - 1, sepMargin,
-                                  rect.right() - 1, rect.height() - sepMargin);
+                if (!firstTab) {
+                    path.moveTo(x2, y2);
+                    path.lineTo(x1, y2);
+                    path.lineTo(x1, y1);
+                }
+                path.lineTo(x2, y1);
             }
+            if (lastTab || onlyOne) {
+                if (!(firstTab || onlyOne)) {
+                    path.moveTo(x2, y2);
+                    path.lineTo(x1, y2);
+                    path.lineTo(x1, y1);
+                }
+                path.lineTo(x2 - radius, y1);
+                path.arcTo(QRect(x2 - diam, y1, diam, diam), 90, -90);
+                path.lineTo(x2, y2);
+            }
+            painter->drawPath(path);
 
-            //            QRect drawRect = rect.adjusted(0, selected ? 0 : 2, 0, 3);
-            //            painter->setPen(outlinePen);
-            //            painter->save();
-            //            painter->setClipRect(rect.adjusted(-1, -1, 1, selected ? -2 : -3));
-            //            painter->setBrush(fillGradient);
-            //            painter->drawRoundedRect(drawRect.adjusted(0, 0, -1, -1), 2.0, 2.0);
-            //            painter->setBrush(Qt::NoBrush);
-            //            painter->setPen(Qt::red);
-            //            painter->drawRoundedRect(drawRect.adjusted(1, 1, -2, -1), 2.0, 2.0);
-            //            painter->restore();
-
-            //            if (selected) {
-            //                painter->fillRect(rect.left() + 1, rect.bottom() - 1, rect.width() - 2, rect.bottom() - 1, tabFrameColor);
-            //                painter->fillRect(QRect(rect.bottomRight() + QPoint(-2, -1), QSize(1, 1)), Qt::red);
-            //                painter->fillRect(QRect(rect.bottomLeft() + QPoint(0, -1), QSize(1, 1)), Qt::red);
-            //                painter->fillRect(QRect(rect.bottomRight() + QPoint(-1, -1), QSize(1, 1)), Qt::red);
-            //            }
+            int yOffset = (tab->shape == QTabBar::RoundedEast || tab->shape == QTabBar::RoundedSouth) ? 1 : 0;
+            painter->setPen(QPen(selected ? COLOR_TAB_SELECTED_UL : COLOR_TAB_NORMAL_UL, 2));
+            painter->translate(-0.5, -0.5);
+            painter->drawLine(x1 + 1, y2 - yOffset, x2 + 1, y2 - yOffset);
         }
 
         painter->restore();
@@ -1204,6 +1150,43 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
             painter->restore();
             return;
         }
+    case CE_ToolBoxTab:
+        if (const QStyleOptionToolBox *tb = qstyleoption_cast<const QStyleOptionToolBox *>(option)) {
+            proxy()->drawControl(CE_ToolBoxTabShape, tb, painter, widget);
+            proxy()->drawControl(CE_ToolBoxTabLabel, tb, painter, widget);
+        }
+    break;
+    case CE_ToolBoxTabShape:
+        if (const QStyleOptionToolBox *tab = qstyleoption_cast<const QStyleOptionToolBox *> (option)) {
+//            painter->setPen(Qt::black);
+//            painter->setBrush(QColor(255, 255, 0, 100));
+//            painter->drawRect(tBox->rect.adjusted(0, 0, -1, -1));
+
+            bool begining = tab->position == (QStyleOptionToolBox::Beginning | QStyleOptionToolBox::OnlyOneTab);
+            bool ending = tab->position == QStyleOptionToolBox::End;
+        }
+        break;
+    case CE_ToolBoxTabLabel:
+//        painter->fillRect(option->rect, QColor(255, 255, 0, 230));
+        break;
+    case CE_ShapedFrame:
+        painter->save();
+        painter->setPen(COLOR_FRAME_BORDER);
+        painter->setBrush(option->palette.window());
+        prepareSmothPainter(painter);
+        if (qobject_cast<const QToolBox *>(option->styleObject)) {
+            painter->drawRoundedRect(option->rect.adjusted(0, 0, -1, -1), 4, 4);
+        } else {
+            if (const QStyleOptionFrame *frame = qstyleoption_cast<const QStyleOptionFrame *>(option)) {
+                if (frame->frameShape == QFrame::NoFrame) {
+                    painter->setPen(Qt::NoPen);
+                }
+            }
+//
+            painter->drawRect(option->rect.adjusted(0, 0 ,-1, -1));
+        }
+        painter->restore();
+        break;
     default:
         QCommonStyle::drawControl(ce, option, painter, widget);
         break;
@@ -1418,18 +1401,7 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
             proxy()->drawPrimitive(PE_FrameLineEdit, &buttonOption, painter, widget);
 
 
-            //            }
-            //Draw the Button
-            //            QString btnPxmStr;
-            //            if (sunken) {
-            //                btnPxmStr = ":/images/images/combobox_button_sunken.png";
-            //            } else if (hover) {
-            //                btnPxmStr = ":/images/images/combobox_button_hover.png";
-            //            } else {
-            //                btnPxmStr = ":/images/images/combobox_button.png";
-            //            }
-            //            QPixmap btnPxm(btnPxmStr);
-            //            qDrawBorderPixmap(painter, btnRect, QMargins(4, 4, 4, 4), btnPxm);
+
 
             QColor btnBgColor;
             if (sunken) {
@@ -1437,13 +1409,13 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
             } else if (hover) {
                 btnBgColor = COLOR_COMBOBOX_HOVER;
             } else {
-                btnBgColor = COLOR_PALETTE_WINDOW;
+                btnBgColor = option->palette.window().color();
             }
 
             painter->save();
             painter->setRenderHint(QPainter::Antialiasing);
             painter->translate(0.5, 0.5); //due to hdpi bug
-            painter->setPen(!(sunken | hover) ? btnBgColor : COLOR_PALETTE_WINDOW);
+            painter->setPen(!(sunken | hover) ? btnBgColor : option->palette.window().color());
             painter->setBrush(btnBgColor);
             painter->setClipRect(btnRect.adjusted(0, 0, 2, 0)); //a little wider
             painter->drawRoundedRect(btnRect.adjusted(-4, 1, 0, -2), 4, 4);
@@ -1451,19 +1423,11 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
             painter->setPen(COLOR_FRAME_BORDER);
             painter->drawLine(btnRect.left() + 1, 1, btnRect.left() + 1, btnRect.bottom() - 1);
             if (sunken | hover) {
-                painter->setPen(COLOR_PALETTE_WINDOW);
+                painter->setPen(option->palette.window().color());
                 painter->drawLine(btnRect.left() + 2, 2, btnRect.left() + 2, btnRect.bottom() - 2);
             }
             painter->restore();
 
-            //Draw the arrow indicator
-//            QTransform matrix;
-//            matrix.rotate(180);
-//            QPixmap indPxm(":/images/images/arrow_ind.png");
-//            QRect arrowRect(0, 0, 6, 6);
-//            arrowRect.moveCenter(btnRect.center());
-
-//            painter->drawPixmap(arrowRect, indPxm.transformed(matrix, Qt::SmoothTransformation));
             drawArrow(painter, Qt::DownArrow, COLOR_INDICATOR_ARROW, btnRect);
         }
         painter->restore();
@@ -1495,7 +1459,7 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
             painter->translate(-0.5, -0.5);
 //            painter->setOpacity(0.4);
 //            qDebug() << "uprect" << upRect;
-            QColor btnBg = hover ? COLOR_COMBOBOX_HOVER : COLOR_PALETTE_WINDOW;
+            QColor btnBg = hover ? COLOR_COMBOBOX_HOVER : option->palette.window().color();
             painter->setPen(Qt::NoPen);
             painter->save();
             painter->translate(-0.5, -0.5);
@@ -1514,23 +1478,22 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
             painter->drawLine(upRect.left() + 1, 1, downRect.left() + 1, spinBox->rect.bottom());
             painter->drawLine(upRect.left() + 1, upRect.bottom() + 1, spinBox->rect.right(), upRect.bottom() + 1);
 
-//            QPixmap indPxm(":/images/images/arrow_ind.png");
-//            QRect arrowRect(0, 0, 6, 6);
-//            arrowRect.moveCenter(upRect.center());
-//            painter->drawPixmap(arrowRect.adjusted(0, -2, 0, -2), indPxm);
-
-//            arrowRect.moveCenter(downRect.center());
-//            QTransform matrix;
-//            matrix.rotate(180);
-//            painter->drawPixmap(arrowRect, indPxm.transformed(matrix));
             drawArrow(painter, Qt::UpArrow, COLOR_INDICATOR_ARROW, upRect.adjusted(0, -2, 0, 0));
             drawArrow(painter, Qt::DownArrow, COLOR_INDICATOR_ARROW, downRect);
 
         }
         break;
-//    case CC_ToolButton:
-//        painter->fillRect(option->rect, Qt::blue);
-//        break;
+    case CC_ToolButton:
+        if (const QStyleOptionToolButton *btn = qstyleoption_cast<const QStyleOptionToolButton *>(option)) {
+            QStyleOptionToolButton other;
+//            other.QStyleOption::operator=(*btn);
+            other = *btn;
+            QPalette pal = other.palette;
+            pal.setBrush(QPalette::ButtonText, COLOR_DEFAULT_TEXT);
+            other.palette = pal;
+            QCommonStyle::drawComplexControl(control, &other, painter, widget);
+        }
+        break;
     default:
         QCommonStyle::drawComplexControl(control, option, painter, widget);
         break;
@@ -1547,48 +1510,35 @@ QRect MaterialStyle::subControlRect(QStyle::ComplexControl cc, const QStyleOptio
     case CC_GroupBox: {
         if (const QStyleOptionGroupBox *groupBox = qstyleoption_cast<const QStyleOptionGroupBox *>(opt)) {
             rect = opt->rect;
-            int indWidth = groupBox->subControls & SC_GroupBoxCheckBox ?
-                        pixelMetric(PM_IndicatorWidth, opt, widget) : 0;
-            //            QRect indicatorRect(GROUP_BOX_TEXT_H_MARGIN, (rect.height() - indWidth) / 2, indWidth, indWidth);
+
+            if (sc == SC_GroupBoxFrame) {
+                return groupBox->rect;
+            }
 
             QFontMetrics fm(groupBoxFont);
-            QRect textRect = fm.boundingRect(groupBox->text);
-            int stolenByText = 0;
-            int stolenByIcon = 0;
-            int textHeight = 0;
-            int indHeight = 0;
-            if (groupBox->subControls & SC_GroupBoxLabel) {
-                QFontMetrics fm(groupBoxFont);
-                QRect textRect = fm.boundingRect(groupBox->text);
-                textHeight = textRect.height();
-                stolenByText += 2 * GROUP_BOX_TEXT_V_MARGIN + textHeight + GROUP_BOX_UNDERLINE_WIDTH;
-            }
-            else if (groupBox->subControls & SC_GroupBoxCheckBox) {
-                indHeight = indWidth;
-                stolenByIcon += 2 * GROUP_BOX_TEXT_V_MARGIN + indHeight;
-                //                    stolen += GROUP_BOX_UNDERLINE_WIDTH;
-            }
-            int headerHeight = qMax(stolenByText, stolenByIcon);
+            QSize textSize = fm.boundingRect(groupBox->text).size();
+            int checkIndicatorWidth = pixelMetric(PM_IndicatorWidth, opt, widget);
+            int headerHeight = 2 * GROUP_BOX_HEADER_MARGINS + qMax(textSize.height(), checkIndicatorWidth);
 
+            if (sc == SC_GroupBoxCheckBox) {
+                QRect indRect(0, 0, checkIndicatorWidth, checkIndicatorWidth);
+                indRect.moveLeft(GROUP_BOX_INDICATOR_MARGIN);
+                indRect.moveTop((headerHeight - checkIndicatorWidth) / 2);
+                return (groupBox->subControls & SC_GroupBoxCheckBox) ? indRect : QRect();
+            }
             if (sc == SC_GroupBoxLabel) {
-                int space = pixelMetric(PM_CheckBoxLabelSpacing, opt, widget);
-                textRect.moveTo(GROUP_BOX_TEXT_H_MARGIN + indWidth + space, GROUP_BOX_TEXT_V_MARGIN);
+                QRect textRect;
+                textRect.setSize(textSize);
+                textRect.moveLeft(GROUP_BOX_TEXT_V_MARGIN +
+                                  ((groupBox->subControls & SC_GroupBoxCheckBox) ? GROUP_BOX_INDICATOR_MARGIN + checkIndicatorWidth :
+                                                                                  0));
+                textRect.moveTop((headerHeight - textSize.height()) / 2);
                 return textRect;
             }
+//            if (sc == SC_GroupBoxContents) {
+                return groupBox->rect.adjusted(1, (groupBox->subControls & (SC_GroupBoxCheckBox | SC_GroupBoxLabel)) ? headerHeight + GROUP_BOX_UNDERLINE_WIDTH + 1 : 1,
+                                               -1, -1);
 
-            else if (sc == SC_GroupBoxFrame) {
-                return rect;
-            }
-            else if (sc == SC_GroupBoxContents) {
-                //                stolen += 2; //top border
-                QRect cRect = rect.adjusted(3, headerHeight, -3, -3);
-                return cRect;
-            }
-            else if (sc == SC_GroupBoxCheckBox) {
-                QRect iRect(GROUP_BOX_TEXT_H_MARGIN, (headerHeight - GROUP_BOX_UNDERLINE_WIDTH - indWidth) / 2,
-                            indWidth, indWidth);
-                return iRect;
-            }
         }
         break;
     }
@@ -1805,7 +1755,7 @@ int MaterialStyle::pixelMetric(QStyle::PixelMetric metric, const QStyleOption *o
         return -1;
     case PM_TabCloseIndicatorWidth:
     case PM_TabCloseIndicatorHeight:
-        return 4;
+        return 5;
     case PM_TabBarTabVSpace:
         return 12;
     case PM_TabBarTabOverlap:
@@ -1842,8 +1792,19 @@ void MaterialStyle::polish(QWidget *widget)
             || qobject_cast<QScrollBar *>(widget)
             || qobject_cast<QSplitterHandle *>(widget)
             || qobject_cast<QAbstractSlider *>(widget)
-            || qobject_cast<QAbstractSpinBox *>(widget))
+            || qobject_cast<QAbstractSpinBox *>(widget)
+            || qobject_cast<QTabBar *>(widget))
         widget->setAttribute(Qt::WA_Hover, true);
+    if (QToolBox *tb = qobject_cast<QToolBox *>(widget)) {
+        tb->setFrameStyle(QFrame::StyledPanel);
+//        tb->setFrameShape(QFrame::StyledPanel);
+        QPalette pal = tb->palette();
+        pal.setBrush(QPalette::Button, COLOR_TOOLBOX_CONTENT_BG);
+        tb->setPalette(pal);
+        tb->setAttribute(Qt::WA_Hover, true);
+        tb->layout()->setSpacing(0);
+//        tb->setBackgroundRole(QPalette::NoRole);
+    }
 }
 
 void MaterialStyle::polish(QPalette &pal)
@@ -1853,7 +1814,7 @@ void MaterialStyle::polish(QPalette &pal)
     pal.setBrush(QPalette::Dark, QColor(7, 58, 147));            //pushbutton normal end gradient
     pal.setBrush(QPalette::Midlight, QColor(132, 191, 247));     //pushbutton hover start gradient
     pal.setBrush(QPalette::Mid, QColor(43, 84, 163));            //pushbutton hover end gradient
-    pal.setBrush(QPalette::Button, COLOR_PALETTE_WINDOW);       //button normal color
+//    pal.setBrush(QPalette::Button, COLOR_PALETTE_HIGHLIGHT);       //button normal color
     pal.setBrush(QPalette::ButtonText, COLOR_BUTTON_TEXT);   //pushbutton text color
     pal.setBrush(QPalette::Shadow, QColor(0, 0, 0));             //shadow
     pal.setBrush(QPalette::BrightText, QColor(7, 30, 82));       //pushbutton hover text color
@@ -1872,7 +1833,8 @@ void MaterialStyle::unpolish(QWidget *widget)
             || qobject_cast<QScrollBar *>(widget)
             || qobject_cast<QSplitterHandle *>(widget)
             || qobject_cast<QAbstractSlider *>(widget)
-            || qobject_cast<QAbstractSpinBox *>(widget))
+            || qobject_cast<QAbstractSpinBox *>(widget)
+            || qobject_cast<QTabBar *>(widget))
         widget->setAttribute(Qt::WA_Hover, false);
 }
 
@@ -1934,6 +1896,7 @@ int MaterialStyle::styleHint(QStyle::StyleHint sh, const QStyleOption *opt, cons
     case SH_MenuBar_MouseTracking:
     case SH_Menu_MouseTracking:
     case SH_Menu_SupportsSections:
+    case SH_FocusFrame_AboveWidget:
         return 1;
 
     case SH_ToolBox_SelectedPageTitleBold:
@@ -2158,6 +2121,14 @@ void MaterialStyle::drawArrow(QPainter *painter, Qt::ArrowType type, const QColo
     painter->restore();
 }
 
+void MaterialStyle::prepareSmothPainter(QPainter *painter, bool fixHdpi) const
+{
+    painter->setRenderHint(QPainter::Antialiasing);
+    if (fixHdpi) {
+        painter->translate(0.5, 0.5);
+    }
+}
+
 void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *painter, const QWidget *widget) const
 {
     Q_UNUSED(widget)
@@ -2168,7 +2139,7 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
     bool drawGlowLine = true;
     painter->setPen(QPen(Qt::black, 1));
     int focusSize = pixelMetric(PM_FocusFrameHMargin, btn, widget);
-    QRect btnRect = btn->rect.adjusted(focusSize, focusSize, -focusSize, -focusSize);
+    QRect btnRect = btn->rect/*.adjusted(focusSize, focusSize, -focusSize, -focusSize)*/;
     QColor textColor;
     QColor textShadowColor;
     QLinearGradient grad(0, 0, 0, btnRect.height());
@@ -2177,9 +2148,6 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
 //    QPixmap borderPxm;
 
     if (btn->state & State_Enabled) {
-        if (btn->state & State_HasFocus && btn->state & State_KeyboardFocusChange) {
-            drawPrimitive(PE_FrameFocusRect, btn, painter, widget);
-        }
         if (btn->state & (State_Sunken | State_On)) {
             grad.setColorAt(0.0, btn->palette.color(QPalette::Dark));
             grad.setColorAt(1.0, btn->palette.color(QPalette::Light));
@@ -2213,15 +2181,19 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
         }
         painter->setBrush(grad);
         painter->setPen(COLOR_PUSHBUTTON_BORDER_NORMAL);
-        painter->drawPath(roundRectPath(btnRect.adjusted(1, 1, 0, 0)));
+        painter->drawPath(roundRectPath(btnRect/*.adjusted(1, 1, 0, 0)*/));
         if (drawGlowLine) {
             painter->save();
-            painter->setClipRect(btnRect.adjusted(1, 1, -2, -(btnRect.height() - 4)));
+            painter->setClipRect(btnRect.adjusted(0, 0, -2, -(btnRect.height() - 3)));
 //            painter->fillRect(btnRect, QColor(255, 0, 0, 100));
             painter->setBrush(Qt::NoBrush);
             painter->setPen(COLOR_PUSHBUTTON_GLOW);
-            painter->drawRoundedRect(btnRect.adjusted(2, 2, -2, -1), 2, 2);
+            painter->drawRoundedRect(btnRect.adjusted(1, 1, -2, -1), 2, 2);
             painter->restore();
+        }        
+        if (btn->state & State_HasFocus && btn->state & State_KeyboardFocusChange) {
+            painter->setPen(QPen(COLOR_BUTTON_FOCUS_FG, 3));
+            painter->drawPath(roundRectPath(btnRect/*.adjusted(1, 1, 0, 0)*/));
         }
     }
     else {
@@ -2292,54 +2264,56 @@ void MaterialStyle::drawGroupBox(const QStyleOptionGroupBox *groupBox, QPainter 
     if (groupBox->subControls & QStyle::SC_GroupBoxFrame) {
         drawPrimitive(PE_FrameGroupBox, groupBox, painter, widget);
     }
-
     //Draw the indicator
-    QRect indRect = subControlRect(CC_GroupBox, groupBox, SC_GroupBoxCheckBox, widget);
     if (groupBox->subControls & QStyle::SC_GroupBoxCheckBox) {
-        //        QRect indRect = subControlRect(CC_GroupBox, groupBox, SC_GroupBoxCheckBox, widget);
-        //        QRect textRec
+        QRect indRect = subControlRect(CC_GroupBox, groupBox, SC_GroupBoxCheckBox, widget);
         QStyleOptionButton chk;
         chk.QStyleOption::operator=(*groupBox);
-        //        chk.rect = QRect(0, 0, groupBox->rect.width(), textRect.height() + 2 * GROUP_BOX_TEXT_V_MARGIN);
         chk.rect = indRect;
-        //        painter->translate(4, 0);
         drawPrimitive(PE_IndicatorCheckBox, &chk, painter, widget);
     }
-
     //Draw the text
     if ((groupBox->subControls & QStyle::SC_GroupBoxLabel) && !groupBox->text.isEmpty()) {
-        //        QFont font("Myriad Pro", 12);
-        painter->setPen(COLOR_GROUPBOX_TEXT);
-        int spacing = pixelMetric(PM_CheckBoxLabelSpacing, groupBox, widget);
-        int xOffset = groupBox->subControls & QStyle::SC_GroupBoxCheckBox ?
-                    spacing + pixelMetric(PM_IndicatorWidth) : 0;
-        xOffset += GROUP_BOX_TEXT_H_MARGIN;
-        QFontMetrics fm(groupBoxFont);
-        QRect textRect = fm.boundingRect(groupBox->text);
-        textRect.moveTo(0, 0);
-        int yOffset = GROUP_BOX_TEXT_V_MARGIN /*+ textRect.height()*/;
-        QRect okRect = textRect.adjusted(xOffset, yOffset, xOffset, yOffset);
+        QRect textRect = subControlRect(CC_GroupBox, groupBox, SC_GroupBoxLabel, widget);
         painter->setFont(groupBoxFont);
-        painter->drawText(okRect, groupBox->text);
-
-        //Draw the decoration
-
-        int underlineY = 2 * GROUP_BOX_TEXT_V_MARGIN + textRect.height();
-        painter->setPen(QPen(COLOR_FRAME_BORDER, GROUP_BOX_UNDERLINE_WIDTH));
-        //-2 fills the gap in Windows
-        painter->drawLine(-2, underlineY, okRect.x(), underlineY);
-
-        painter->setPen(QPen(COLOR_GROUPBOX_TEXT, GROUP_BOX_UNDERLINE_WIDTH));
-        painter->drawLine(okRect.x(), underlineY, okRect.width() + okRect.x(), underlineY);
-
-        painter->setPen(QPen(COLOR_FRAME_BORDER, GROUP_BOX_UNDERLINE_WIDTH));
-        painter->drawLine(okRect.width() + okRect.x(), underlineY, groupBox->rect.width(), underlineY);
+        painter->setPen(COLOR_GROUPBOX_TEXT);
+        painter->drawText(textRect.adjusted(0, 1, 0, 0), groupBox->text);
     }
-    else if (groupBox->subControls & QStyle::SC_GroupBoxCheckBox) {
-        painter->setPen(QPen(COLOR_FRAME_BORDER, 2));
-        int decY = indRect.height() + GROUP_BOX_UNDERLINE_WIDTH;
-        painter->drawLine(0, decY, groupBox->rect.width(), decY);
-    }
+
+//    //Draw the text
+//    if ((groupBox->subControls & QStyle::SC_GroupBoxLabel) && !groupBox->text.isEmpty()) {
+//        //        QFont font("Myriad Pro", 12);
+//        painter->setPen(COLOR_GROUPBOX_TEXT);
+//        int spacing = pixelMetric(PM_CheckBoxLabelSpacing, groupBox, widget);
+//        int xOffset = groupBox->subControls & QStyle::SC_GroupBoxCheckBox ?
+//                    spacing + pixelMetric(PM_IndicatorWidth) : 0;
+//        xOffset += GROUP_BOX_TEXT_H_MARGIN;
+//        QFontMetrics fm(groupBoxFont);
+//        QRect textRect = fm.boundingRect(groupBox->text);
+//        textRect.moveTo(0, 0);
+//        int yOffset = GROUP_BOX_TEXT_V_MARGIN /*+ textRect.height()*/;
+//        QRect okRect = textRect.adjusted(xOffset, yOffset, xOffset, yOffset);
+//        painter->setFont(groupBoxFont);
+//        painter->drawText(okRect, groupBox->text);
+
+//        //Draw the decoration
+
+//        int underlineY = 2 * GROUP_BOX_TEXT_V_MARGIN + textRect.height();
+//        painter->setPen(QPen(COLOR_FRAME_BORDER, GROUP_BOX_UNDERLINE_WIDTH));
+//        //-2 fills the gap in Windows
+//        painter->drawLine(-2, underlineY, okRect.x(), underlineY);
+
+//        painter->setPen(QPen(COLOR_GROUPBOX_TEXT, GROUP_BOX_UNDERLINE_WIDTH));
+//        painter->drawLine(okRect.x(), underlineY, okRect.width() + okRect.x(), underlineY);
+
+//        painter->setPen(QPen(COLOR_FRAME_BORDER, GROUP_BOX_UNDERLINE_WIDTH));
+//        painter->drawLine(okRect.width() + okRect.x(), underlineY, groupBox->rect.width(), underlineY);
+//    }
+//    else if (groupBox->subControls & QStyle::SC_GroupBoxCheckBox) {
+//        painter->setPen(QPen(COLOR_FRAME_BORDER, 2));
+//        int decY = indRect.height() + GROUP_BOX_UNDERLINE_WIDTH;
+//        painter->drawLine(0, decY, groupBox->rect.width(), decY);
+//    }
 
 }
 
@@ -2352,13 +2326,18 @@ void MaterialStyle::drawSlider(const QStyleOptionSlider *slider, QPainter *paint
     if (slider->state & State_HasFocus && slider->state & State_KeyboardFocusChange) {
         drawPrimitive(PE_FrameFocusRect, slider, painter, widget);
     }
-
+    painter->save();
+    prepareSmothPainter(painter);
     bool horizontal = slider->orientation == Qt::Horizontal;
-    bool showTicks = !(slider->tickPosition & QSlider::NoTicks);
+//    bool showTicks = !(slider->tickPosition & QSlider::NoTicks);
 
+//    qDebug() << slider->rect << groove << handle;
     if (slider->subControls & QStyle::SC_SliderGroove) {
-        QPixmap px(":/images/images/slider_frame.png");
-        qDrawBorderPixmap(painter, groove, QMargins(2, 2, 2, 2), px);
+//        QPixmap px(":/images/images/slider_frame.png");
+//        qDrawBorderPixmap(painter, groove, QMargins(2, 2, 2, 2), px);
+        painter->setPen(COLOR_FRAME_BORDER);
+        painter->setBrush(COLOR_SLIDER_GROOVE_BG);
+        painter->drawRoundedRect(groove.adjusted(0, 0,horizontal ? -1 : 0, horizontal ? 0 : -1), 2, 2);
     }
     QRect clipRect = groove;
     QLinearGradient gradient;
@@ -2388,7 +2367,7 @@ void MaterialStyle::drawSlider(const QStyleOptionSlider *slider, QPainter *paint
     painter->save();
     painter->setBrush(gradient);
     painter->setPen(Qt::NoPen);
-    painter->drawRoundRect(clipRect.adjusted(2, 2, -2, -2), 2, 2);
+    painter->drawRoundRect(clipRect.adjusted(2, 2, horizontal ? -3 : -2, horizontal ? -2 : -3), 2, 2);
     //    painter->fillRect(clipRect, gradient)
     //    painter->drawRect(clipRect.adjusted(1, 1, -1, -1));
     painter->restore();
@@ -2400,14 +2379,41 @@ void MaterialStyle::drawSlider(const QStyleOptionSlider *slider, QPainter *paint
     //    }
 
     if (slider->subControls & QStyle::SC_SliderHandle) {
-        QString pxStr = slider->state & State_Sunken ? ":/images/images/slider_button_sunken.png":
-                                                       ":/images/images/slider_button_hover.png";
-        if (!(slider->state & State_MouseOver)) {
-            pxStr = ":/images/images/slider_frame.png";
+//        QString pxStr = slider->state & State_Sunken ? ":/images/images/slider_button_sunken.png":
+//                                                       ":/images/images/slider_button_hover.png";
+//        if (!(slider->state & State_MouseOver)) {
+//            pxStr = ":/images/images/slider_frame.png";
+//        }
+//        QPixmap px(pxStr);
+//        qDrawBorderPixmap(painter, handle, QMargins(2, 2, 2, 2), px);
+        QColor borderColor;
+        QColor bgColor;
+        bool drawInnerBorder = false;
+        if (slider->state & State_Sunken) {
+            borderColor = COLOR_SLIDER_HANDLE_SUNKEN_BORDER;
+            bgColor = COLOR_SLIDER_HANDLE_SUNKEN_BG;
+            drawInnerBorder = true;
         }
-        QPixmap px(pxStr);
-        qDrawBorderPixmap(painter, handle, QMargins(2, 2, 2, 2), px);
+        else if (slider->state & State_MouseOver) {
+            borderColor = COLOR_SLIDER_HANDLE_NORMAL_BORDER;
+            bgColor = COLOR_SLIDER_HANDLE_HOVER_BG;
+            drawInnerBorder = true;
+        }
+        else {
+            borderColor = COLOR_SLIDER_HANDLE_NORMAL_BORDER;
+            bgColor = COLOR_SLIDER_HANDLE_NORMAL_BG;
+        }
+        painter->setPen(borderColor);
+        painter->setBrush(bgColor);
+        handle.adjust(0, 0, horizontal ? -1 : 0, horizontal ? 0 : -1);
+        painter->drawRoundedRect(handle, 2, 2);
+        if (drawInnerBorder) {
+            painter->setPen(COLOR_SLIDER_HANDLE_INNER_BORDER);
+            painter->setBrush(Qt::NoBrush);
+            painter->drawRoundedRect(handle.adjusted(1, 1, -1, -1), 2, 2);
+        }
     }
+    painter->restore();
 }
 
 void MaterialStyle::tabLayout(const QStyleOptionTabV3 *opt, const QWidget *widget, QRect *textRect, QRect *iconRect) const

@@ -1,31 +1,5 @@
 <RCC>
-    <qresource prefix="/images">
-        <file>images/check_box_state0.png</file>
-        <file>images/check_box_state1.png</file>
-        <file>images/frame_top.png</file>
-        <file>images/group_box_bottom.png</file>
-        <file>images/group_box_top.png</file>
-        <file>images/check_box_state2.png</file>
-        <file>images/slider_frame.png</file>
-        <file>images/slider_button_normal.png</file>
-        <file>images/tab_close.png</file>
-        <file>images/slider_button_hover.png</file>
-        <file>images/frame.png</file>
-        <file>images/slider_button_sunken.png</file>
-        <file>images/tabwidget_frame.png</file>
-        <file>images/tab_hover_squared.png</file>
-        <file>images/tab_normal_squared.png</file>
-        <file>images/tab_sunken_squared.png</file>
-        <file>images/tab_hover_rounded.png</file>
-        <file>images/tab_sunken_rounded.png</file>
-        <file>images/tab_normal_rounded.png</file>
-        <file>images/arrow_ind.png</file>
-        <file>images/combobox_button_hover.png</file>
-        <file>images/combobox_button_sunken.png</file>
-        <file>images/combobox_button.png</file>
-        <file>images/edit_frame.png</file>
-        <file>images/edit_frame_active.png</file>
-    </qresource>
+    <qresource prefix="/images"/>
     <qresource prefix="/fonts">
         <file>Fonts/MYRIADPRO-BOLD.OTF</file>
         <file>Fonts/MYRIADPRO-BOLDCOND.OTF</file>
