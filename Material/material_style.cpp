@@ -1160,10 +1160,75 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
         if (const QStyleOptionToolBox *tab = qstyleoption_cast<const QStyleOptionToolBox *> (option)) {
 //            painter->setPen(Qt::black);
 //            painter->setBrush(QColor(255, 255, 0, 100));
-//            painter->drawRect(tBox->rect.adjusted(0, 0, -1, -1));
+//            painter->drawRect(tab->rect.adjusted(0, 0, -1, -1));
+            painter->save();
+            prepareSmothPainter(painter);
+//            painter->drawRoundedRect(tab->rect.adjusted(0, 0, -1, -1), 4, 4);
 
-            bool begining = tab->position == (QStyleOptionToolBox::Beginning | QStyleOptionToolBox::OnlyOneTab);
+            bool begining = tab->position == (QStyleOptionToolBox::Beginning);
             bool ending = tab->position == QStyleOptionToolBox::End;
+            bool selected = tab->state & State_Selected;
+
+            painter->setPen(COLOR_SLIDER_HANDLE_INNER_BORDER);
+            painter->setBrush(selected ? Qt::red : Qt::yellow);
+
+            int x1, x2, y1, y2;
+            tab->rect.getCoords(&x1, &y1, &x2, &y2);
+//            x1++;
+//            y1++;
+//            x2--;
+//            y2--;
+            int radius = 4;
+            int diam = radius * 2;
+            int offset = selected ? 2 : 1;
+            QPainterPath path;
+//            qDebug() << "tab pos" << tab->position;
+            if (begining) {
+//                qDebug() << "begining";
+//                path.moveTo(x1, y2);
+//                path.lineTo(x1, y1 + radius);
+//                path.arcTo(QRect(x1, y1, diam, diam), 180, -90);
+//                path.lineTo(x2 - radius, y1);
+//                path.arcTo(QRect(x2 - diam, y1, diam, diam), 90, -90);
+//                path.lineTo(x2, y2);
+//                path.closeSubpath();
+                path.moveTo(x2, y2 - offset);
+                path.lineTo(x2, y1 + radius);
+                path.arcTo(QRect(x2 - diam, y1, diam, diam), 0, +90);
+                path.lineTo(x1 + radius, y1);
+                path.arcTo(QRect(x1, y1, diam, diam), 90, +90);
+                path.lineTo(x1, y2 - offset);
+                path.closeSubpath();
+            }
+            else if (!ending || (ending && selected)) {
+                path.moveTo(x1, y2 - offset);
+                path.lineTo(x1, y1);
+                path.lineTo(x2, y1);
+                path.lineTo(x2, y2 - offset);
+                path.closeSubpath();
+            } else {
+                if (!selected) {
+                    path.moveTo(x1, y2 - radius);
+                    path.arcTo(QRect(x1, y2 - diam, diam, diam), 180, 90);
+                    path.lineTo(x2 - radius, y2);
+                    path.arcTo(QRect(x2 - diam, y2 - diam, diam, diam), 270, 90);
+                } else {
+                    path.moveTo(x1, y2);
+                    path.lineTo(x2, y2);
+                }
+                path.lineTo(x2, y1);
+                path.lineTo(x1, y1);
+                path.closeSubpath();
+            }
+            painter->drawPath(path);
+            if (selected) {
+                painter->translate(-0.5, -0.5);
+                painter->setPen(QPen(COLOR_TAB_SELECTED_UL, 2));
+            } else {
+                painter->setPen(COLOR_FRAME_BORDER);
+            }
+            painter->drawLine(x1, y2, x2, y2);
+            painter->restore();
         }
         break;
     case CE_ToolBoxTabLabel:
