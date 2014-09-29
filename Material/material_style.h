@@ -50,6 +50,7 @@ public:
     int styleHint(StyleHint sh, const QStyleOption *opt, const QWidget *w, QStyleHintReturn *shret = 0) const;
     QSize sizeFromContents(ContentsType type, const QStyleOption *option,
                            const QSize &size, const QWidget *widget) const;
+    QPixmap generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &pixmap, const QStyleOption *opt) const;
 signals:
 
 public slots:

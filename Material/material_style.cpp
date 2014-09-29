@@ -32,6 +32,7 @@
 #include <QMainWindow>
 #include <QToolBox>
 #include <QLayout>
+#include <QPixmap>
 #include "progress_style_animation.h"
 #include "style_animation.h"
 
@@ -1168,9 +1169,11 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
             bool begining = tab->position == (QStyleOptionToolBox::Beginning);
             bool ending = tab->position == QStyleOptionToolBox::End;
             bool selected = tab->state & State_Selected;
+            bool prevSelected = tab->selectedPosition & QStyleOptionToolBox::PreviousIsSelected;
+            bool hover = tab->state & State_MouseOver; //no trabaja bien
 
             painter->setPen(COLOR_SLIDER_HANDLE_INNER_BORDER);
-            painter->setBrush(selected ? Qt::red : Qt::yellow);
+            painter->setBrush(selected ? COLOR_TOOLBOX_TAB_SELECTED/*Qt::red*/ : COLOR_TOOLBOX_TAB_NORMAL/*Qt::blue*/);
 
             int x1, x2, y1, y2;
             tab->rect.getCoords(&x1, &y1, &x2, &y2);
@@ -1219,20 +1222,75 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
                 path.lineTo(x2, y1);
                 path.lineTo(x1, y1);
                 path.closeSubpath();
+//                qDebug() << "repintando";
             }
             painter->drawPath(path);
-            if (selected) {
-                painter->translate(-0.5, -0.5);
-                painter->setPen(QPen(COLOR_TAB_SELECTED_UL, 2));
-            } else {
+//            if (!ending) {
+                if (selected) {
+                    painter->translate(-0.5, -0.5);
+                    painter->setPen(QPen(COLOR_TAB_SELECTED_UL, 2));
+                } else {
+                    painter->setPen(COLOR_FRAME_BORDER);
+                }
+                if (!(!selected && ending))
+                painter->drawLine(x1, y2, x2, y2);
+
+//            }
+            if (prevSelected) {
                 painter->setPen(COLOR_FRAME_BORDER);
+                painter->drawLine(x1, y1, x2, y1);
             }
-            painter->drawLine(x1, y2, x2, y2);
+
             painter->restore();
         }
         break;
     case CE_ToolBoxTabLabel:
-//        painter->fillRect(option->rect, QColor(255, 255, 0, 230));
+        if (const QStyleOptionToolBox *tb = qstyleoption_cast<const QStyleOptionToolBox *>(option)) {
+            bool enabled = tb->state & State_Enabled;
+            bool selected = tb->state & State_Selected;
+            QPixmap pm = tb->icon.pixmap(proxy()->pixelMetric(QStyle::PM_SmallIconSize, tb, widget),
+                                         enabled ? QIcon::Normal : QIcon::Disabled);
+            if (pm.isNull()) {
+                pm = generatedIconPixmap(selected ? QIcon::Normal : QIcon::Disabled, pm, tb);
+            }
+
+            QRect cr = subElementRect(QStyle::SE_ToolBoxTabContents, tb, widget);
+            QRect tr, ir;
+            int ih = 0;
+            if (pm.isNull()) {
+                tr = cr;
+                tr.adjust(4, 0, -8, 0);
+            } else {
+                int iw = pm.width() / pm.devicePixelRatio() + 4;
+                ih = pm.height()/ pm.devicePixelRatio();
+                ir = QRect(cr.left() + 4, cr.top(), iw + 2, ih);
+                tr = QRect(ir.right(), cr.top(), cr.width() - ir.right() - 4, cr.height());
+            }
+
+            if (selected && proxy()->styleHint(QStyle::SH_ToolBox_SelectedPageTitleBold, tb, widget)) {
+                QFont f(regularFont);
+                f.setBold(true);
+                painter->setFont(f);
+            }
+
+            QString txt = tb->fontMetrics.elidedText(tb->text, Qt::ElideRight, tr.width());
+
+            if (ih)
+                painter->drawPixmap(ir.left(), (tb->rect.height() - ih) / 2, pm);
+
+            int alignment = Qt::AlignLeft | Qt::AlignVCenter | Qt::TextShowMnemonic;
+            if (!proxy()->styleHint(QStyle::SH_UnderlineShortcut, tb, widget))
+                alignment |= Qt::TextHideMnemonic;
+            proxy()->drawItemText(painter, tr, alignment, tb->palette, enabled, txt, QPalette::Text);
+
+            if (!txt.isEmpty() && option->state & State_HasFocus) {
+                QStyleOptionFocusRect opt;
+                opt.rect = tr;
+                opt.palette = tb->palette;
+                opt.state = QStyle::State_None;
+                proxy()->drawPrimitive(QStyle::PE_FrameFocusRect, &opt, painter, widget);
+            }
+        }
         break;
     case CE_ShapedFrame:
         painter->save();
@@ -1868,6 +1926,7 @@ void MaterialStyle::polish(QWidget *widget)
         tb->setPalette(pal);
         tb->setAttribute(Qt::WA_Hover, true);
         tb->layout()->setSpacing(0);
+        connect(tb, SIGNAL(currentChanged(int)), tb, SLOT(repaint()));
 //        tb->setBackgroundRole(QPalette::NoRole);
     }
 }
@@ -2069,6 +2128,20 @@ QSize MaterialStyle::sizeFromContents(QStyle::ContentsType type, const QStyleOpt
         break;
     }
     return newSize;
+}
+
+QPixmap MaterialStyle::generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &pixmap, const QStyleOption *opt) const
+{
+    if (const QStyleOptionToolBox *tb = qstyleoption_cast<const QStyleOptionToolBox *>(opt)) {
+        int iw = pixelMetric(PM_SmallIconSize, opt);
+        QImage img(iw, iw, QImage::Format_ARGB32);
+        QPainter p(&img);
+        p.drawLine(0, 0, iw, iw);
+        QPixmap px;
+        px.convertFromImage(img);
+        return px;
+    }
+    return QCommonStyle::generatedIconPixmap(iconMode, pixmap, opt);
 }
 
 void MaterialStyle::removeAnimation()
