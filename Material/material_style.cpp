@@ -2135,8 +2135,16 @@ QPixmap MaterialStyle::generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &
     if (const QStyleOptionToolBox *tb = qstyleoption_cast<const QStyleOptionToolBox *>(opt)) {
         int iw = pixelMetric(PM_SmallIconSize, opt);
         QImage img(iw, iw, QImage::Format_ARGB32);
+        img.fill(Qt::transparent);
         QPainter p(&img);
-        p.drawLine(0, 0, iw, iw);
+        prepareSmothPainter(&p);
+        bool enabled = iconMode == QIcon::Normal;
+//        if (iconMode == QIcon::Normal) {
+            p.setPen(Qt::NoPen);
+            p.setBrush(enabled ? COLOR_TAB_SELECTED_UL : COLOR_FG_DISABLED);
+            p.drawEllipse(QRect(0, 0, iw - 1, iw - 1));
+            drawArrow(&p, enabled ? Qt::DownArrow : Qt::RightArrow, Qt::white, QRect(0, 0, iw - 1, iw - 1));
+//        }
         QPixmap px;
         px.convertFromImage(img);
         return px;
@@ -2319,14 +2327,14 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
         }
         painter->setBrush(grad);
         painter->setPen(COLOR_PUSHBUTTON_BORDER_NORMAL);
-        painter->drawPath(roundRectPath(btnRect/*.adjusted(1, 1, 0, 0)*/));
+        painter->drawPath(roundRectPath(btnRect.adjusted(0, 0, -1, -1)));
         if (drawGlowLine) {
             painter->save();
             painter->setClipRect(btnRect.adjusted(0, 0, -2, -(btnRect.height() - 3)));
 //            painter->fillRect(btnRect, QColor(255, 0, 0, 100));
             painter->setBrush(Qt::NoBrush);
             painter->setPen(COLOR_PUSHBUTTON_GLOW);
-            painter->drawRoundedRect(btnRect.adjusted(1, 1, -2, -1), 2, 2);
+            painter->drawRoundedRect(btnRect.adjusted(1, 1, -3, -1), 2, 2);
             painter->restore();
         }        
         if (btn->state & State_HasFocus && btn->state & State_KeyboardFocusChange) {
@@ -2339,7 +2347,7 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
         textColor = btn->palette.color(QPalette::Disabled, QPalette::ButtonText);
         painter->setPen(COLOR_PUSHBUTTON_BORDER_DISABLED);
         painter->setBrush(btn->palette.window());
-        painter->drawRoundedRect(btnRect, 2, 2);
+        painter->drawRoundedRect(btnRect.adjusted(0, 0, -1, -1), 2, 2);
     }
 
 //    qDrawBorderPixmap(painter, btnRect, QMargins(4, 5, 4, 4), borderPxm);
