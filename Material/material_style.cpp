@@ -425,8 +425,15 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         painter->save();
         if ((option->state & State_Enabled || option->state & State_On) || !(option->state & State_AutoRaise)) {
             if (widget && widget->inherits("QDockWidgetTitleButton")) {
-                if (option->state & State_MouseOver)
-                    proxy()->drawPrimitive(PE_PanelButtonCommand, option, painter, widget);
+                if (option->state & State_MouseOver) {
+                    if (const QStyleOptionToolButton *btn = qstyleoption_cast<const QStyleOptionToolButton *>(option)) {
+                        QStyleOptionToolButton opt = *btn;
+                        QPalette pal = option->palette;
+                        pal.setBrush(QPalette::Window, Qt::NoBrush);
+                        opt.palette = pal;
+                        proxy()->drawPrimitive(PE_PanelButtonCommand, &opt, painter, widget);
+                    }
+                }
             } else {
 //                bool test = option->state & State_MouseOver;
 //                qDebug() << test;
@@ -445,6 +452,27 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
 //    case PE_FrameWindow:
 //        painter->fillRect(option->rect, Qt::green);
 //        break;
+    case PE_FrameDockWidget: {
+        QRect titleRect = subElementRect(SE_DockWidgetTitleBarText, option, widget);
+        painter->setPen(COLOR_FRAME_BORDER);
+        painter->setBrush(option->palette.window());
+        painter->drawRect(option->rect.adjusted(0, 0, -1, -1));
+//        painter->setBrush(Qt::blue);
+////        qDebug() << "rrrr" << titleRect;
+//        painter->drawRect(titleRect);
+    }
+        break;
+    case PE_IndicatorDockWidgetResizeHandle:
+    {
+        QStyleOption dockWidgetHandle = *option;
+        bool horizontal = option->state & State_Horizontal;
+        if (horizontal)
+            dockWidgetHandle.state &= ~State_Horizontal;
+        else
+            dockWidgetHandle.state |= State_Horizontal;
+        proxy()->drawControl(CE_Splitter, &dockWidgetHandle, painter, widget);
+    }
+        break;
     default:
         QCommonStyle::drawPrimitive(elem, option, painter, widget);
         break;
@@ -1310,6 +1338,122 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
         }
         painter->restore();
         break;
+    case CE_DockWidgetTitle:
+        painter->save();
+        if (const QStyleOptionDockWidget *dwOpt = qstyleoption_cast<const QStyleOptionDockWidget *>(option)) {
+            bool verticalTitleBar = dwOpt->verticalTitleBar;
+            painter->fillRect(dwOpt->rect, COLOR_DOCK_TITLE_BG);
+//            qDebug() << "dwtit";
+            QRect titleRect = subElementRect(SE_DockWidgetTitleBarText, option, widget);
+            if (verticalTitleBar) {
+                QRect rect = dwOpt->rect;
+                QRect r = rect;
+
+                QSize s = r.size();
+                s.transpose();
+                r.setSize(s);
+                titleRect = QRect(r.left() + rect.bottom()
+                                  - titleRect.bottom(),
+                                  r.top() + titleRect.left() - rect.left(),
+                                  titleRect.height(), titleRect.width());
+
+                painter->translate(r.left(), r.top() + r.width());
+                painter->rotate(-90);
+                painter->translate(-r.left(), -r.top());
+            }
+
+            if (!dwOpt->title.isEmpty()) {
+//                qDebug() << "paint dw tit" << dwOpt->title << titleRect;
+                QString titleText
+                        = painter->fontMetrics().elidedText(dwOpt->title,
+                                                            Qt::ElideRight, titleRect.width());
+                proxy()->drawItemText(painter,
+                                      titleRect,
+                                      Qt::AlignLeft | Qt::AlignVCenter | Qt::TextShowMnemonic, dwOpt->palette,
+                                      dwOpt->state & State_Enabled, titleText,
+                                      QPalette::ButtonText);
+            }
+        }
+        painter->restore();
+        break;
+    case CE_Splitter:
+    {
+        // Don't draw handle for single pixel splitters
+        if (option->rect.width() > 1 && option->rect.height() > 1) {
+            //draw grips
+            QRect r = option->rect;
+            painter->fillRect(r, COLOR_SPLITTER_BG);
+            if (option->state & State_Horizontal) {
+                QRect indRect(r.left(), r.top() + (r.height() - SPLITTER_IND_WIDTH) / 2, r.width(), SPLITTER_IND_WIDTH);
+                painter->fillRect(indRect, COLOR_SPLITTER_DECO_BG);
+                drawArrow(painter, Qt::RightArrow, Qt::white, indRect.adjusted(2, 2, -2, -2));
+            } else {
+                QRect indRect(r.left() + (r.width() - SPLITTER_IND_WIDTH) / 2, r.top(), SPLITTER_IND_WIDTH, r.height());
+                painter->fillRect(indRect, COLOR_SPLITTER_DECO_BG);
+                drawArrow(painter, Qt::UpArrow, Qt::white, indRect.adjusted(2, 2, -2, -2));
+            }
+        }
+        break;
+    }
+    case CE_HeaderSection:
+        painter->save();
+        // Draws the header in tables.
+        if (const QStyleOptionHeader *header = qstyleoption_cast<const QStyleOptionHeader *>(option)) {
+//            QString pixmapName = QStyleHelper::uniqueName(QLatin1String("headersection"), option, option->rect.size());
+//            pixmapName += QString::number(- int(header->position));
+//            pixmapName += QString::number(- int(header->orientation));
+
+//            QPixmap cache;
+//            if (!QPixmapCache::find(pixmapName, cache)) {
+//                cache = styleCachePixmap(rect.size());
+//                cache.fill(Qt::transparent);
+//                QRect pixmapRect(0, 0, rect.width(), rect.height());
+//                QPainter cachePainter(&cache);
+//                QColor buttonColor = d->buttonColor(option->palette);
+//                QColor gradientStopColor;
+//                QColor gradientStartColor = buttonColor.lighter(104);
+//                gradientStopColor = buttonColor.darker(102);
+//                QLinearGradient gradient(pixmapRect.topLeft(), pixmapRect.bottomLeft());
+
+//                if (option->palette.background().gradient()) {
+//                    gradient.setStops(option->palette.background().gradient()->stops());
+//                } else {
+//                    QColor midColor1 = mergedColors(gradientStartColor, gradientStopColor, 60);
+//                    QColor midColor2 = mergedColors(gradientStartColor, gradientStopColor, 40);
+//                    gradient.setColorAt(0, gradientStartColor);
+//                    gradient.setColorAt(0.5, midColor1);
+//                    gradient.setColorAt(0.501, midColor2);
+//                    gradient.setColorAt(0.92, gradientStopColor);
+//                    gradient.setColorAt(1, gradientStopColor.darker(104));
+//                }
+//                cachePainter.fillRect(pixmapRect, gradient);
+//                cachePainter.setPen(d->innerContrastLine());
+//                cachePainter.setBrush(Qt::NoBrush);
+//                cachePainter.drawLine(pixmapRect.topLeft(), pixmapRect.topRight());
+//                cachePainter.setPen(d->outline(option->palette));
+//                cachePainter.drawLine(pixmapRect.bottomLeft(), pixmapRect.bottomRight());
+
+//                if (header->orientation == Qt::Horizontal &&
+//                        header->position != QStyleOptionHeader::End &&
+//                        header->position != QStyleOptionHeader::OnlyOneSection) {
+//                    cachePainter.setPen(QColor(0, 0, 0, 40));
+//                    cachePainter.drawLine(pixmapRect.topRight(), pixmapRect.bottomRight() + QPoint(0, -1));
+//                    cachePainter.setPen(d->innerContrastLine());
+//                    cachePainter.drawLine(pixmapRect.topRight() + QPoint(-1, 0), pixmapRect.bottomRight() + QPoint(-1, -1));
+//                } else if (header->orientation == Qt::Vertical) {
+//                    cachePainter.setPen(d->outline(option->palette));
+//                    cachePainter.drawLine(pixmapRect.topRight(), pixmapRect.bottomRight());
+//                }
+//                cachePainter.end();
+//                QPixmapCache::insert(pixmapName, cache);
+//            }
+//            painter->drawPixmap(rect.topLeft(), cache);
+            painter->setBrush(COLOR_HEADER);
+            painter->setPen(COLOR_FRAME_BORDER);
+            painter->drawRect(option->rect.adjusted(-1, -1, -1, -1));
+        }
+        painter->restore();
+        break;
     default:
         QCommonStyle::drawControl(ce, option, painter, widget);
         break;
@@ -1842,7 +1986,7 @@ int MaterialStyle::pixelMetric(QStyle::PixelMetric metric, const QStyleOption *o
     case PM_SliderLength:
         return 15;
     case PM_DockWidgetTitleMargin:
-        return 1;
+        return 2;
     case PM_DefaultFrameWidth:
         return 1;
     case PM_SpinBoxFrameWidth:
@@ -1916,8 +2060,13 @@ void MaterialStyle::polish(QWidget *widget)
             || qobject_cast<QSplitterHandle *>(widget)
             || qobject_cast<QAbstractSlider *>(widget)
             || qobject_cast<QAbstractSpinBox *>(widget)
-            || qobject_cast<QTabBar *>(widget))
+            || qobject_cast<QTabBar *>(widget)
+            || (widget->inherits("QDockSeparator"))
+            || (widget->inherits("QDockWidgetSeparator"))) {
         widget->setAttribute(Qt::WA_Hover, true);
+        widget->setAttribute(Qt::WA_OpaquePaintEvent, false);
+    }
+
     if (QToolBox *tb = qobject_cast<QToolBox *>(widget)) {
         tb->setFrameStyle(QFrame::StyledPanel);
 //        tb->setFrameShape(QFrame::StyledPanel);
@@ -1925,6 +2074,7 @@ void MaterialStyle::polish(QWidget *widget)
         pal.setBrush(QPalette::Button, COLOR_TOOLBOX_CONTENT_BG);
         tb->setPalette(pal);
         tb->setAttribute(Qt::WA_Hover, true);
+        tb->setAttribute(Qt::WA_OpaquePaintEvent, false);
         tb->layout()->setSpacing(0);
         connect(tb, SIGNAL(currentChanged(int)), tb, SLOT(repaint()));
 //        tb->setBackgroundRole(QPalette::NoRole);
@@ -1958,7 +2108,9 @@ void MaterialStyle::unpolish(QWidget *widget)
             || qobject_cast<QSplitterHandle *>(widget)
             || qobject_cast<QAbstractSlider *>(widget)
             || qobject_cast<QAbstractSpinBox *>(widget)
-            || qobject_cast<QTabBar *>(widget))
+            || qobject_cast<QTabBar *>(widget)
+            || (widget->inherits("QDockSeparator"))
+            || (widget->inherits("QDockWidgetSeparator")))
         widget->setAttribute(Qt::WA_Hover, false);
 }
 
@@ -1993,6 +2145,21 @@ QRect MaterialStyle::subElementRect(QStyle::SubElement subElem, const QStyleOpti
     case SE_ProgressBarContents:
     case SE_ProgressBarGroove:
         return opt->rect;
+//    case SE_DockWidgetTitleBarText: {
+//        if (const QStyleOptionDockWidget *titlebar = qstyleoption_cast<const QStyleOptionDockWidget*>(opt)) {
+//            bool verticalTitleBar = titlebar->verticalTitleBar;
+//            if (verticalTitleBar) {
+//                r.adjust(0, 0, 0, -4);
+//            } else {
+//                if (opt->direction == Qt::LeftToRight)
+//                    r.adjust(4, 0, 0, 0);
+//                else
+//                    r.adjust(0, 0, -4, 0);
+//            }
+//        }
+
+//        break;
+//    }
     default:
         return QCommonStyle::subElementRect(subElem, opt, widget);
     }
@@ -2139,17 +2306,66 @@ QPixmap MaterialStyle::generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &
         QPainter p(&img);
         prepareSmothPainter(&p);
         bool enabled = iconMode == QIcon::Normal;
-//        if (iconMode == QIcon::Normal) {
-            p.setPen(Qt::NoPen);
-            p.setBrush(enabled ? COLOR_TAB_SELECTED_UL : COLOR_FG_DISABLED);
-            p.drawEllipse(QRect(0, 0, iw - 1, iw - 1));
-            drawArrow(&p, enabled ? Qt::DownArrow : Qt::RightArrow, Qt::white, QRect(0, 0, iw - 1, iw - 1));
-//        }
+        p.setPen(Qt::NoPen);
+        p.setBrush(enabled ? COLOR_TAB_SELECTED_UL : COLOR_FG_DISABLED);
+        p.drawEllipse(QRect(0, 0, iw - 1, iw - 1));
+        drawArrow(&p, enabled ? Qt::DownArrow : Qt::RightArrow, Qt::white, QRect(0, 0, iw - 1, iw - 1));
         QPixmap px;
         px.convertFromImage(img);
         return px;
     }
     return QCommonStyle::generatedIconPixmap(iconMode, pixmap, opt);
+}
+
+QPixmap MaterialStyle::standardPixmap(QStyle::StandardPixmap sp, const QStyleOption *option, const QWidget *widget) const
+{
+//    qDebug() << sp;
+    switch (sp) {
+    case SP_TitleBarCloseButton:
+    case SP_DockWidgetCloseButton: {
+        int sz = 11;
+        QImage img(sz, sz, QImage::Format_ARGB32);
+        img.fill(Qt::transparent);
+        QPainter painter(&img);
+
+        QRect imgRect(0, 0, sz, sz);
+        QRect indRect(0, 0, sz - 6, sz - 6);
+        indRect.moveCenter(imgRect.center());
+        painter.save();
+        prepareSmothPainter(&painter);
+        painter.setPen(QPen(COLOR_DOCK_TITLE_FG, 2));
+        painter.drawLine(indRect.left() - 1, indRect.top() - 1, indRect.right() + 1, indRect.bottom() + 1);
+        painter.drawLine(indRect.right() + 1, indRect.top() - 1, indRect.left() - 1, indRect.bottom() + 1);
+        painter.restore();
+        return QPixmap::fromImage(img);
+    }
+    case SP_TitleBarNormalButton: {
+        int sz = 11;
+        QImage img(sz, sz, QImage::Format_ARGB32);
+        img.fill(Qt::transparent);
+        QPainter painter(&img);
+
+        QRect imgRect(0, 0, sz, sz);
+        QRect indRect(0, 0, sz - 6, sz - 6);
+        indRect.moveCenter(imgRect.center());
+        painter.save();
+        prepareSmothPainter(&painter);
+        painter.setPen(QPen(COLOR_DOCK_TITLE_FG, 1));
+        QRect topRect(sz / 2 - 1, sz / 5 - 1, sz / 2, sz / 2);
+        QRect bottomRect(sz / 5 - 1, sz / 2 - 1, sz / 2, sz / 2);
+        painter.drawRect(topRect);
+        painter.setBrush(COLOR_DOCK_TITLE_FG);
+        painter.drawRect(bottomRect);
+//        QRegion region(indRect);
+////        region.
+////        painter.setClipRegion(region.subtracted(QRegion(bottomRect)));
+        painter.restore();
+        return QPixmap::fromImage(img);
+    }
+    default:
+        return QCommonStyle::standardPixmap(sp, option, widget);
+    }
+
 }
 
 void MaterialStyle::removeAnimation()
@@ -2233,7 +2449,7 @@ void MaterialStyle::drawArrow(QPainter *painter, Qt::ArrowType type, const QColo
     painter->setPen(Qt::NoPen);
     painter->setBrush(color);
     bool horizontal = (type == Qt::RightArrow || type == Qt::LeftArrow);
-    QRect r(0, 0, 8 + (horizontal ? 0 : 1), 8 + (horizontal ? 1 : 0));
+    QRect r(0, 0, 6 + (horizontal ? 0 : 1), 6 + (horizontal ? 1 : 0));
     r.moveCenter(rect.center());
     switch (type) {
     case Qt::UpArrow:

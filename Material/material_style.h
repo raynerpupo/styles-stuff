@@ -51,6 +51,7 @@ public:
     QSize sizeFromContents(ContentsType type, const QStyleOption *option,
                            const QSize &size, const QWidget *widget) const;
     QPixmap generatedIconPixmap(QIcon::Mode iconMode, const QPixmap &pixmap, const QStyleOption *opt) const;
+    QPixmap standardPixmap(StandardPixmap sp, const QStyleOption *option, const QWidget *widget) const;
 signals:
 
 public slots:
