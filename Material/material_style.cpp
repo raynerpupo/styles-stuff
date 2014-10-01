@@ -31,6 +31,7 @@
 #include <QDirIterator>
 #include <QMainWindow>
 #include <QToolBox>
+#include <QTableWidget>
 #include <QLayout>
 #include <QPixmap>
 #include "progress_style_animation.h"
@@ -170,7 +171,9 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         prepareSmothPainter(painter);
         painter->setPen(QPen(COLOR_FRAME_BORDER, 1/*, Qt::DashLine, Qt::RoundCap*/));
         painter->setBrush(Qt::NoBrush);
-        painter->drawRoundedRect(option->rect.adjusted(0, 0, -1, -1), 2, 2);
+        if (!widget->inherits("QAbstractItemView")) {
+            painter->drawRoundedRect(option->rect.adjusted(0, 0, -1, -1), 2, 2);
+        }
         painter->restore();
         break;
     }
@@ -472,6 +475,9 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
             dockWidgetHandle.state |= State_Horizontal;
         proxy()->drawControl(CE_Splitter, &dockWidgetHandle, painter, widget);
     }
+        break;
+    case PE_IndicatorBranch:
+        painter->fillRect(option->rect, Qt::red);
         break;
     default:
         QCommonStyle::drawPrimitive(elem, option, painter, widget);
@@ -1367,9 +1373,11 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
                 QString titleText
                         = painter->fontMetrics().elidedText(dwOpt->title,
                                                             Qt::ElideRight, titleRect.width());
+                QPalette pal = dwOpt->palette;
+                pal.setBrush(QPalette::ButtonText, COLOR_BUTTON_TEXT);
                 proxy()->drawItemText(painter,
                                       titleRect,
-                                      Qt::AlignLeft | Qt::AlignVCenter | Qt::TextShowMnemonic, dwOpt->palette,
+                                      Qt::AlignLeft | Qt::AlignVCenter | Qt::TextShowMnemonic, pal,
                                       dwOpt->state & State_Enabled, titleText,
                                       QPalette::ButtonText);
             }
@@ -1450,10 +1458,51 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
 //            painter->drawPixmap(rect.topLeft(), cache);
             painter->setBrush(COLOR_HEADER);
             painter->setPen(COLOR_FRAME_BORDER);
-            painter->drawRect(option->rect.adjusted(-1, -1, -1, -1));
+            QRect r = option->rect;
+            painter->drawRect(r.adjusted(-1, -1, -1, -1));
+            bool selected = header->state & QStyle::State_On;
+            if (selected) {
+//                painter->setRenderHint(QPainter::Antialiasing);
+                painter->setPen(QPen(COLOR_TAB_SELECTED_UL, 2));
+                QPoint endPoint = r.bottomRight();
+                endPoint.rx() --;
+                painter->drawLine(r.bottomLeft(), endPoint);
+            }
         }
         painter->restore();
         break;
+    case CE_HeaderLabel:
+        if (const QStyleOptionHeader *header = qstyleoption_cast<const QStyleOptionHeader *>(option)) {
+            QRect rect = header->rect;
+            if (!header->icon.isNull()) {
+                QPixmap pixmap
+                    = header->icon.pixmap(proxy()->pixelMetric(PM_SmallIconSize), (header->state & State_Enabled) ? QIcon::Normal : QIcon::Disabled);
+                int pixw = pixmap.width() / pixmap.devicePixelRatio();
+
+                QRect aligned = alignedRect(header->direction, QFlag(header->iconAlignment), pixmap.size() / pixmap.devicePixelRatio(), rect);
+                QRect inter = aligned.intersected(rect);
+                painter->drawPixmap(inter.x(), inter.y() - 1, pixmap,
+                              inter.x() - aligned.x(), inter.y() - aligned.y(),
+                              aligned.width() * pixmap.devicePixelRatio(),
+                              pixmap.height() * pixmap.devicePixelRatio());
+
+                if (header->direction == Qt::LeftToRight)
+                    rect.setLeft(rect.left() + pixw + 2);
+                else
+                    rect.setRight(rect.right() - pixw - 2);
+            }
+//            if (header->state & QStyle::State_On) {
+//                QFont fnt = painter->font();
+//                fnt.setBold(true);
+//                painter->setFont(fnt);
+//            }
+            proxy()->drawItemText(painter, rect.adjusted(0, -2, 0, -2), header->textAlignment, header->palette,
+                         (header->state & State_Enabled), header->text, QPalette::ButtonText);
+        }
+        break;
+//    case CE_ItemViewItem:
+
+//        break;
     default:
         QCommonStyle::drawControl(ce, option, painter, widget);
         break;
@@ -2078,6 +2127,16 @@ void MaterialStyle::polish(QWidget *widget)
         tb->layout()->setSpacing(0);
         connect(tb, SIGNAL(currentChanged(int)), tb, SLOT(repaint()));
 //        tb->setBackgroundRole(QPalette::NoRole);
+        return;
+    }
+//    if (QTableWidget *tw = qobject_cast<QTableWidget *>(widget)) {
+//        QPalette pal = tw->palette();
+//        pal.setBrush(QPalette::AlternateBase, COLOR_PALETTE_ALTENATE_BASE);
+//        tw->setPalette(pal);
+//        tw->setAlternatingRowColors(true);
+//    }
+    if (QAbstractItemView *iv = qobject_cast<QAbstractItemView *>(widget)) {
+        iv->setAlternatingRowColors(true);
     }
 }
 
@@ -2089,7 +2148,7 @@ void MaterialStyle::polish(QPalette &pal)
     pal.setBrush(QPalette::Midlight, QColor(132, 191, 247));     //pushbutton hover start gradient
     pal.setBrush(QPalette::Mid, QColor(43, 84, 163));            //pushbutton hover end gradient
 //    pal.setBrush(QPalette::Button, COLOR_PALETTE_HIGHLIGHT);       //button normal color
-    pal.setBrush(QPalette::ButtonText, COLOR_BUTTON_TEXT);   //pushbutton text color
+    pal.setBrush(QPalette::ButtonText, COLOR_PALETTE_BUTTON_TEXT);   //pushbutton text color
     pal.setBrush(QPalette::Shadow, QColor(0, 0, 0));             //shadow
     pal.setBrush(QPalette::BrightText, QColor(7, 30, 82));       //pushbutton hover text color
     pal.setBrush(QPalette::Disabled, QPalette::ButtonText, QColor(171, 171, 171));
@@ -2097,6 +2156,7 @@ void MaterialStyle::polish(QPalette &pal)
     pal.setBrush(QPalette::Highlight, COLOR_PALETTE_HIGHLIGHT);
     pal.setBrush(QPalette::Text, COLOR_PALETTE_TEXT);
     pal.setBrush(QPalette::HighlightedText, COLOR_PALETTE_HL_TEXT);
+    pal.setBrush(QPalette::AlternateBase, COLOR_PALETTE_ALTENATE_BASE);
 }
 
 void MaterialStyle::unpolish(QWidget *widget)
@@ -2198,6 +2258,8 @@ int MaterialStyle::styleHint(QStyle::StyleHint sh, const QStyleOption *opt, cons
     case SH_MessageBox_CenterButtons:
     case SH_RubberBand_Mask:
         return 0;
+    case SH_Table_GridLineColor:
+        return COLOR_FRAME_BORDER.rgb();
     default:
         return QCommonStyle::styleHint(sh, opt, w, shret);
     }
@@ -2513,7 +2575,7 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
         if (btn->state & (State_Sunken | State_On)) {
             grad.setColorAt(0.0, btn->palette.color(QPalette::Dark));
             grad.setColorAt(1.0, btn->palette.color(QPalette::Light));
-            textColor = btn->palette.color(QPalette::ButtonText);
+            textColor = COLOR_BUTTON_TEXT;
             textShadowColor = btn->palette.color(QPalette::Shadow);
             textShadowColor.setAlpha(25 * 255 / 100);
 //            borderPxm = QPixmap(":/images/images/push_button_normal.png");
@@ -2525,7 +2587,7 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
             grad.setColorAt(1.0, btn->palette.mid().color());
             drawGlowLine = false;
             textColor = btn->palette.color(QPalette::BrightText);
-            textShadowColor = btn->palette.color(QPalette::ButtonText);
+            textShadowColor = COLOR_BUTTON_TEXT;
             textShadowColor.setAlpha(40 * 255 / 100);
 //            borderPxm = QPixmap(":/images/images/push_button_hover.png");
             drawTextShadow = true;
@@ -2534,7 +2596,7 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
         else {
             grad.setColorAt(0.0, btn->palette.color(QPalette::Light));
             grad.setColorAt(1.0, btn->palette.color(QPalette::Dark));
-            textColor = btn->palette.color(QPalette::ButtonText);
+            textColor = COLOR_BUTTON_TEXT;
             textShadowColor = btn->palette.color(QPalette::Shadow);
             textShadowColor.setAlpha(25 * 255 / 100);
 //            borderPxm = QPixmap(":/images/images/push_button_normal.png");
