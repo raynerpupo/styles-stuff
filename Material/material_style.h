@@ -70,6 +70,8 @@ private:
     QPolygonF calcLines(const QStyleOptionSlider *dial) const;
     int calcBigLineSize(int radius) const;
     QPointF calcRadialPos(const QStyleOptionSlider *dial, qreal offset) const;
+    void drawMdiButton(QStyle::SubControl sc, QPainter *painter, const QColor &fg, const QColor &bgColor,
+                       const QRect &rect, bool hover, bool sunken) const;
 
     QFont groupBoxFont;
     QFont regularFont;
@@ -86,7 +88,7 @@ private:
     void loadCustomFonts();
 
     //testing
-    QPixmap testPxFactory() const;
+    QPixmap testPxFactory(const QString &pxName) const;
 
     mutable QHash<const QObject*, StyleAnimation*> animations;
 };

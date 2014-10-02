@@ -2001,18 +2001,116 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
             painter->save();
             prepareSmothPainter(painter);
             painter->setPen(COLOR_FRAME_BORDER);
-            painter->setBrush(COLOR_GROUPBOX_HEADER);
+            painter->setBrush(COLOR_GROUPBOX_HEADER/*.darker()*/);
             painter->drawRoundedRect(option->rect.adjusted(0, 0, -1, 40), 4, 4);
 
-            painter->translate(-0.5, -0.5); //
-            painter->setPen(QPen(COLOR_TAB_SELECTED_UL));
+            painter->translate(-0.5, -0.5);
 //            QString text = titleBar->text;
             QRect textRect = proxy()->subControlRect(CC_TitleBar, titleBar, SC_TitleBarLabel, widget);
-            painter->setPen(active? COLOR_TAB_SELECTED_TEXT :
-                                    COLOR_TAB_NORMAL_TEXT );
+            //draw the text
+            QColor fgColor = active? COLOR_TAB_SELECTED_TEXT :
+                                  COLOR_TAB_NORMAL_TEXT;
+            painter->setPen(fgColor);
             QString title = painter->fontMetrics().elidedText(titleBar->text, Qt::ElideRight, textRect.width() - 14);
-            painter->drawText(textRect.adjusted(1, 1, 1, 1), title, QTextOption(Qt::AlignHCenter | Qt::AlignVCenter));
-            painter->setPen(Qt::white);
+            painter->drawText(textRect.adjusted(1, 1, 1, 1), title, QTextOption(Qt::AlignLeft | Qt::AlignVCenter));
+
+            QRect actTextRect = painter->fontMetrics().boundingRect(title);
+            actTextRect.moveLeft(textRect.left() + 1);
+
+            //draw the text decoration
+            QRect rect = option->rect;
+            painter->setPen(QPen(COLOR_TAB_NORMAL_UL, 2));
+            if (!active) {
+                painter->drawLine(rect.bottomLeft(), rect.bottomRight());
+            }
+            else {
+                painter->drawLine(rect.left(), rect.bottom(), actTextRect.left(), rect.bottom());
+                painter->setPen(QPen(COLOR_TAB_SELECTED_UL, 2));
+                painter->drawLine(actTextRect.left(), rect.bottom(), actTextRect.right(), rect.bottom());
+                painter->setPen(QPen(COLOR_TAB_NORMAL_UL, 2));
+                painter->drawLine(actTextRect.right(), rect.bottom(), rect.right(), rect.bottom());
+            }
+            //draw the min button
+            if ((titleBar->subControls & SC_TitleBarMinButton) && (titleBar->titleBarFlags & Qt::WindowMinimizeButtonHint) &&
+                    !(titleBar->titleBarState& Qt::WindowMinimized)) {
+                QRect minButtonRect = proxy()->subControlRect(CC_TitleBar, titleBar, SC_TitleBarMinButton, widget);
+                bool hover = (titleBar->activeSubControls & SC_TitleBarMinButton) && (titleBar->state & State_MouseOver);
+                bool sunken = (titleBar->activeSubControls & SC_TitleBarMaxButton) && (titleBar->state & State_Sunken);
+                if (minButtonRect.isValid()) {
+                    drawMdiButton(SC_TitleBarMinButton, painter, fgColor, fgColor.lighter(250), minButtonRect, hover, sunken);
+                }
+            }
+            //draw the max button
+            if ((titleBar->subControls & SC_TitleBarMaxButton) && (titleBar->titleBarFlags & Qt::WindowMaximizeButtonHint) &&
+                    !(titleBar->titleBarState & Qt::WindowMaximized)) {
+                QRect maxButtonRect = proxy()->subControlRect(CC_TitleBar, titleBar, SC_TitleBarMaxButton, widget);
+                bool hover = (titleBar->activeSubControls & SC_TitleBarMaxButton) && (titleBar->state & State_MouseOver);
+                bool sunken = (titleBar->activeSubControls & SC_TitleBarMaxButton) && (titleBar->state & State_Sunken);
+                if (maxButtonRect.isValid()) {
+                    drawMdiButton(SC_TitleBarMaxButton, painter, fgColor, fgColor.lighter(250), maxButtonRect, hover, sunken);
+                }
+            }
+            // draw the close button
+            if ((titleBar->subControls & SC_TitleBarCloseButton) && (titleBar->titleBarFlags & Qt::WindowSystemMenuHint)) {
+                QRect closeButtonRect = proxy()->subControlRect(CC_TitleBar, titleBar, SC_TitleBarCloseButton, widget);
+                bool hover = (titleBar->activeSubControls & SC_TitleBarCloseButton) && (titleBar->state & State_MouseOver);
+                bool sunken = (titleBar->activeSubControls & SC_TitleBarCloseButton) && (titleBar->state & State_Sunken);
+                if (closeButtonRect.isValid()) {
+                    drawMdiButton(SC_TitleBarCloseButton, painter, fgColor, fgColor.lighter(250), closeButtonRect, hover, sunken);
+                }
+            }
+            // draw the normalize button
+            if ((titleBar->subControls & SC_TitleBarNormalButton) &&
+                    (((titleBar->titleBarFlags & Qt::WindowMinimizeButtonHint) &&
+                      (titleBar->titleBarState & Qt::WindowMinimized)) ||
+                     ((titleBar->titleBarFlags & Qt::WindowMaximizeButtonHint) &&
+                      (titleBar->titleBarState & Qt::WindowMaximized)))) {
+                QRect normalButtonRect = proxy()->subControlRect(CC_TitleBar, titleBar, SC_TitleBarNormalButton, widget);
+                bool hover = (titleBar->activeSubControls & SC_TitleBarNormalButton) && (titleBar->state & State_MouseOver);
+                bool sunken = (titleBar->activeSubControls & SC_TitleBarNormalButton) && (titleBar->state & State_Sunken);
+                if (normalButtonRect.isValid()) {
+                    drawMdiButton(SC_TitleBarNormalButton, painter, fgColor, fgColor.lighter(250), normalButtonRect, hover, sunken);
+                }
+            }
+            // draw the context help button
+            if (titleBar->subControls & SC_TitleBarContextHelpButton
+                    && (titleBar->titleBarFlags & Qt::WindowContextHelpButtonHint)) {
+                QRect contextHelpButtonRect = proxy()->subControlRect(CC_TitleBar, titleBar, SC_TitleBarContextHelpButton, widget);
+                bool hover = (titleBar->activeSubControls & SC_TitleBarContextHelpButton) && (titleBar->state & State_MouseOver);
+                bool sunken = (titleBar->activeSubControls & SC_TitleBarContextHelpButton) && (titleBar->state & State_Sunken);
+                if (contextHelpButtonRect.isValid()) {
+                    drawMdiButton(SC_TitleBarContextHelpButton, painter, fgColor, fgColor.lighter(250), contextHelpButtonRect, hover, sunken);
+                }
+            }
+
+            // draw the shade button
+            if (titleBar->subControls & SC_TitleBarShadeButton && (titleBar->titleBarFlags & Qt::WindowShadeButtonHint)) {
+                QRect shadeButtonRect = proxy()->subControlRect(CC_TitleBar, titleBar, SC_TitleBarShadeButton, widget);
+                bool hover = (titleBar->activeSubControls & SC_TitleBarShadeButton) && (titleBar->state & State_MouseOver);
+                bool sunken = (titleBar->activeSubControls & SC_TitleBarShadeButton) && (titleBar->state & State_Sunken);
+                if (shadeButtonRect.isValid()) {
+                    drawMdiButton(SC_TitleBarShadeButton, painter, fgColor, fgColor.lighter(250), shadeButtonRect, hover, sunken);
+                }
+            }
+
+            // draw the unshade button
+            if (titleBar->subControls & SC_TitleBarUnshadeButton && (titleBar->titleBarFlags & Qt::WindowShadeButtonHint)) {
+                QRect unshadeButtonRect = proxy()->subControlRect(CC_TitleBar, titleBar, SC_TitleBarUnshadeButton, widget);
+                bool hover = (titleBar->activeSubControls & SC_TitleBarUnshadeButton) && (titleBar->state & State_MouseOver);
+                bool sunken = (titleBar->activeSubControls & SC_TitleBarUnshadeButton) && (titleBar->state & State_Sunken);
+                if (unshadeButtonRect.isValid()) {
+                    drawMdiButton(SC_TitleBarUnshadeButton, painter, fgColor, fgColor.lighter(250), unshadeButtonRect, hover, sunken);
+                }
+            }
+            // draw the sys button
+            if ((titleBar->subControls & SC_TitleBarSysMenu) && (titleBar->titleBarFlags & Qt::WindowSystemMenuHint)) {
+                QRect iconRect = proxy()->subControlRect(CC_TitleBar, titleBar, SC_TitleBarSysMenu, widget);
+                bool hover = (titleBar->activeSubControls & SC_TitleBarSysMenu) && (titleBar->state & State_MouseOver);
+                bool sunken = (titleBar->activeSubControls & SC_TitleBarSysMenu) && (titleBar->state & State_Sunken);
+                if (iconRect.isValid()) {
+                    drawMdiButton(SC_TitleBarSysMenu, painter, fgColor, fgColor.lighter(250), iconRect, hover, sunken);
+                }
+            }
 
 //            painter->fillRect(textRect, Qt::yellow);
 
@@ -2477,9 +2575,10 @@ QRect MaterialStyle::subControlRect(QStyle::ComplexControl cc, const QStyleOptio
             switch (sc) {
             case SC_TitleBarLabel:
                 if (tb->titleBarFlags & (Qt::WindowTitleHint | Qt::WindowSystemMenuHint)) {
+                    const int textVMargin = 2;
                     ret = tb->rect.adjusted(0, 1, 0, 0);
                     if (tb->titleBarFlags & Qt::WindowSystemMenuHint)
-                        ret.adjust(delta, 0, -delta, 0);
+                        ret.adjust(delta + textVMargin, 0, -delta, 0);
                     if (tb->titleBarFlags & Qt::WindowMinimizeButtonHint)
                         ret.adjust(0, 0, -delta, 0);
                     if (tb->titleBarFlags & Qt::WindowMaximizeButtonHint)
@@ -3564,119 +3663,74 @@ QPointF MaterialStyle::calcRadialPos(const QStyleOptionSlider *dial, qreal offse
     return pos;
 }
 
-QPixmap MaterialStyle::testPxFactory() const
+void MaterialStyle::drawMdiButton(QStyle::SubControl sc, QPainter *painter, const QColor &fg, const QColor &bgColor, const QRect &rect, bool hover, bool sunken) const
 {
-    const char * const px[] = {
-        "11 13 7 1",
-        "  c None",
-        ". c #D5CFCB",
-        "+ c #8F8B88",
-        "@ c #6C6A67",
-        "# c #ABA6A3",
-        "$ c #B5B0AC",
-        "% c #A4A09D",
-        "           ",
-        "@         @",
-        "@         @",
-        "@         @",
-        "@         @",
-        "@         @",
-        "@         @",
-        "@         @",
-        "@         @",
-        "@         @",
-        "+%       #+",
-        " +@@@@@@@+ ",
-        "           "};
+    painter->save();
+    prepareSmothPainter(painter);
+    painter->setPen(fg);
+    if (hover) {
+        painter->setBrush(bgColor);
+        if (sunken) {
+            painter->setBrush(bgColor.darker(130));
+        }
+        painter->drawRoundedRect(rect.adjusted(0, 0, -1, -1), 2, 2);
+    }
 
-    const char * const px11[] = {
-        "15 15 13 1",
-        "  c None",
-        "@ c #808080",
-        "# c #858585",
-        "$ c #868686",
-        "% c #999999",
-        "^ c #c0c0c0",
-        "& c #c1c1c1",
-        "* c #cccccc",
-        "- c #cfcfcf",
-        "+ c #d6d6d6",
-        "/ c #dcdcdc",
-        "? c #f7f7f7",
-        "_ c #f8f8f8",
-        " _/-*******-/_ ",
-        "?-&%#@@@@@#%&-?",
-        "/^$+_     _+$^/",
-        "-%+         +%-",
-        "*#_         _#*",
-        "*@           @*",
-        "*@           @*",
-        "*@           @*",
-        "*@           @*",
-        "*@           @*",
-        "*#_         _#*",
-        "-%+         +%-",
-        "/^$+_     _+$^/",
-        "?-&%#@@@@@#%&-?",
-        " _/-*******-/_ "
-    };
-
-    const char * const px1[] = {
-        "16 15 9 1",
-        "  c None",
-        ". c #f1f1f1",
-        "* c #bfbfbf"
-        "+ c #a0a0a0",
-        "@ c #f0f0f0",
-        "# c #a8a8a8",
-        "$ c #d6d6d6",
-        "% c #f8f8f8",
-        "& c #a5a5a5",
-        "               ",
-        " .*+++++++++*. ",
-        "@#$%       %$#@",
-        "*$           $*",
-        "&             &",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "&             &",
-        "*$           $*",
-        "@#$%       %$#@",
-        " .*+++++++++*. "
-    };
-
-    const char * const px2[] = {
-        "15 15 9 1",
-        "  c None",
-        ". c #f1f1f1",
-        "* c #bfbfbf"
-        "+ c #000000",
-        "@ c #f0f0f0",
-        "# c #a8a8a8",
-        "$ c #d6d6d6",
-        "% c #f8f8f8",
-        "& c #a5a5a5",
-        "+++++++++++++++",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+             +",
-        "+++++++++++++++"
-    };
-    //    return QPixmap((const char **)px);
-    return QPixmap(":/images/images/group_box_top.png");
+    QRect cRect = rect.adjusted(4, 4, -4, -4);
+    painter->translate(-0.5, -0.5);
+    painter->fillRect(cRect, QColor(255, 0, 0, 100));
+    switch (sc) {
+    case SC_TitleBarMinButton:
+        painter->setPen(QPen(fg, 2));
+        painter->drawLine(cRect.left() + 1, cRect.bottom(), cRect.right(), cRect.bottom());
+        break;
+    case SC_TitleBarMaxButton:
+        painter->setPen(QPen(fg, 2));
+        painter->drawRect(cRect.adjusted(1, 1, -1, -1));
+        break;
+    case SC_TitleBarCloseButton:
+        painter->setPen(QPen(fg, 2));
+        painter->drawLine(cRect.left() + 1, cRect.top() + 1, cRect.right(), cRect.bottom());
+        painter->drawLine(cRect.right(), cRect.top() + 1, cRect.left() + 1, cRect.bottom());
+        break;
+    case SC_TitleBarNormalButton: {
+        painter->setPen(QPen(fg, 2));
+        int rw = cRect.width();
+        int rh = cRect.height();
+        int rx = cRect.left();
+        int ry = cRect.top();
+        QRect topRect(rx + rw / 2 - 1, ry + 1, rw / 2, rh / 2);
+        QRect bottomRect(rx + 1, ry + rh / 2 - 1, rw / 2, rh / 2);
+        painter->drawRect(topRect);
+        painter->drawRect(bottomRect);
+    }
+        break;
+    case SC_TitleBarContextHelpButton:
+        explosion;
+        break;
+    default:
+        break;
+    }
+    painter->restore();
 }
+
+QPixmap MaterialStyle::testPxFactory(const QString &pxName) const
+{
+//    return "";
+}
+
+static const char * const qt_titlebar_context_help[] = {
+    "10 10 3 1",
+    "  c None",
+    "# c #000000",
+    "+ c #444444",
+    "  +####+  ",
+    " ###  ### ",
+    " ##    ## ",
+    "     +##+ ",
+    "    +##   ",
+    "    ##    ",
+    "    ##    ",
+    "          ",
+    "    ##    ",
+    "    ##    "};
