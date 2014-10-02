@@ -28,6 +28,8 @@ class QStyleOptionGroupBox;
 class QStyleOptionSlider;
 class StyleAnimation;
 
+
+
 class MaterialStyle : public QCommonStyle
 {
     Q_OBJECT
@@ -65,6 +67,9 @@ private:
 
     void drawArrow(QPainter *painter, Qt::ArrowType type, const QColor &color, const QRect &rect) const;
     void prepareSmothPainter(QPainter *painter, bool fixHdpi = true) const;
+    QPolygonF calcLines(const QStyleOptionSlider *dial) const;
+    int calcBigLineSize(int radius) const;
+    QPointF calcRadialPos(const QStyleOptionSlider *dial, qreal offset) const;
 
     QFont groupBoxFont;
     QFont regularFont;
