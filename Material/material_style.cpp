@@ -2796,14 +2796,14 @@ void MaterialStyle::polish(QWidget *widget)
 void MaterialStyle::polish(QPalette &pal)
 {
     pal.setBrush(QPalette::Window, COLOR_PALETTE_WINDOW);       //window background
-    pal.setBrush(QPalette::Light, QColor(64, 148, 208));         //pushbutton normal start gradient
-    pal.setBrush(QPalette::Dark, QColor(7, 58, 147));            //pushbutton normal end gradient
-    pal.setBrush(QPalette::Midlight, QColor(132, 191, 247));     //pushbutton hover start gradient
-    pal.setBrush(QPalette::Mid, QColor(43, 84, 163));            //pushbutton hover end gradient
+    pal.setBrush(QPalette::Light, COLOR_BTN_GRAD_HOVER_START);         //pushbutton normal start gradient
+    pal.setBrush(QPalette::Dark, COLOR_BTN_GRAD_NORMAL_END);            //pushbutton normal end gradient
+    pal.setBrush(QPalette::Midlight, COLOR_BTN_GRAD_HOVER_START);     //pushbutton hover start gradient
+    pal.setBrush(QPalette::Mid, COLOR_BTN_GRAD_HOVER_END);            //pushbutton hover end gradient
 //    pal.setBrush(QPalette::Button, COLOR_PALETTE_HIGHLIGHT);       //button normal color
     pal.setBrush(QPalette::ButtonText, COLOR_PALETTE_BUTTON_TEXT);   //pushbutton text color
     pal.setBrush(QPalette::Shadow, QColor(0, 0, 0));             //shadow
-    pal.setBrush(QPalette::BrightText, QColor(7, 30, 82));       //pushbutton hover text color
+    pal.setBrush(QPalette::BrightText, COLOR_BTN_TEXT_HOVER);       //pushbutton hover text color
     pal.setBrush(QPalette::Disabled, QPalette::ButtonText, QColor(171, 171, 171));
     pal.setBrush(QPalette::WindowText, COLOR_WINDOW_TEXT);
     pal.setBrush(QPalette::Highlight, COLOR_PALETTE_HIGHLIGHT);

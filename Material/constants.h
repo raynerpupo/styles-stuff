@@ -17,13 +17,23 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#if defined xabal
+#include "constants_xabal.h"
+#elif defined xauce
+#include "constants_xauce.h"
+#elif defined xavia
+#include "constants_xavia.h"
+#elif defined xedro
+#include "constants_xedro.h"
+#else
+#include "constants_xilema.h"
+#endif
+
+
 #define BUTTON_RADIUS 2
-//#define BORDER_WIDTH 1
 #define BUTTON_ICON_TEXT_SPACING 3
-//#define BUTTON_CONTENT_MARGINS 3
 #define GROUP_BOX_TOP_MARGIN 3
 #define GROUP_BOX_TEXT_V_MARGIN 4
-//#define GROUP_BOX_TEXT_H_MARGIN 10
 #define GROUP_BOX_UNDERLINE_WIDTH 2
 #define GROUP_BOX_INDICATOR_MARGIN 4
 #define GROUP_BOX_HEADER_MARGINS 3
@@ -38,69 +48,43 @@
 #define menuCheckMarkWidth 12
 #define menuRightBorder 15
 
-//Custom Colors, not palette handled    xilema                    xavia
-#define COLOR_GROUPBOX_TEXT QColor(0, 105, 170)//                 33,110,18
+//Custom Colors, not palette handled
 #define COLOR_GROUPBOX_HEADER QColor(255, 255, 255)
 #define COLOR_FRAME_BORDER QColor(160, 160, 160)
-#define COLOR_SLIDER_GROOVE_L QColor(80, 160, 205)//              110,200,90
-#define COLOR_SLIDER_GROOVE_D QColor(25, 65, 150)//               30,120,25
 #define COLOR_SLIDER_GROOVE_BG QColor(255, 255, 255)
-#define COLOR_SLIDER_HANDLE_SUNKEN_BG QColor(190, 220, 240)//     196,229,189
-#define COLOR_SLIDER_HANDLE_SUNKEN_BORDER QColor(1, 98, 177)//    77,155,62
 #define COLOR_SLIDER_HANDLE_NORMAL_BG QColor(244, 244, 244)
 #define COLOR_SLIDER_HANDLE_NORMAL_BORDER COLOR_FRAME_BORDER
 #define COLOR_SLIDER_HANDLE_HOVER_BG QColor(222, 222, 222)
 #define COLOR_SLIDER_HANDLE_INNER_BORDER QColor(244, 244, 244)
-#define COLOR_TAB_SELECTED_UL QColor(1, 98, 177)//                77,155,62
 #define COLOR_TAB_NORMAL_UL COLOR_FRAME_BORDER
 #define COLOR_TAB_SELECTED_TEXT COLOR_GROUPBOX_TEXT
 #define COLOR_TAB_NORMAL_TEXT QColor(61, 61, 61)
-//#define COLOR_TAB_SEPARATOR COLOR_TAB_NORMAL_UL
 #define COLOR_WINDOW_TEXT QColor(61, 61, 61)
 #define COLOR_SCROLLBAR_GROOVE QColor(255, 255, 255)
-//#define COLOR_SCROLL_GROOVE_DECO COLOR_SLIDER_GROOVE_L
 #define COLOR_PALETTE_WINDOW QColor(244, 244, 244)
-#define COLOR_COMBOBOX_SUNKEN QColor(190, 220, 240)//             196,229,189
 #define COLOR_COMBOBOX_HOVER QColor(222, 222, 222)
 #define COLOR_BUTTON_TEXT QColor(255, 255, 255)
 #define COLOR_PALETTE_BUTTON_TEXT QColor(61, 61, 61)
 #define COLOR_BUTTON_SHADOW QColor(0, 0, 0, 200)
-#define COLOR_BUTTON_FOCUS_FG QColor(200, 200, 255, 100)//        200,255,200,100
+#define COLOR_BUTTON_FOCUS_FG QColor(200, 200, 200, 100)
 #define COLOR_PROGRESSBAR_UND_BG QColor(214, 214, 214)
 #define COLOR_MENU_BG QColor(255, 255, 255)
 #define COLOR_PALETTE_HIGHLIGHT QColor(222, 222, 222)
 #define COLOR_PALETTE_TEXT QColor(61, 61, 61)
 #define COLOR_PALETTE_HL_TEXT QColor(50, 50, 50)
-#define COLOR_INDICATOR_ARROW QColor(50, 100, 230)//              50,230,100*
 #define COLOR_TOOLBAR_BG QColor(235, 235, 235)
-
-#define COLOR_PUSHBUTTON_BORDER_NORMAL QColor(0, 60, 112)//       33,110,18
 #define COLOR_PUSHBUTTON_BORDER_DISABLED QColor(204, 204, 204)
-#define COLOR_PUSHBUTTON_GLOW QColor(138, 199, 253)//             184,226,175
-
 #define COLOR_INDICATORS_BG QColor(255, 255, 255)
 #define COLOR_INDICATORS_FG QColor(160, 160, 160)
 #define COLOR_FG_DISABLED QColor(204, 204, 204)
-
 #define COLOR_DEFAULT_TEXT QColor(42, 42, 42)
-
 #define COLOR_TOOLBOX_CONTENT_BG QColor(255, 255, 255)
 #define COLOR_TOOLBOX_TAB_NORMAL QColor(244, 244, 244)
-//#define COLOR_TOOLBOX_TAB_HOVER QColor(222, 222, 222)
 #define COLOR_TOOLBOX_TAB_SELECTED QColor(255, 255, 255)
-
-#define COLOR_DOCK_TITLE_BG QColor(1, 98, 177)//                  77,155,62
 #define COLOR_DOCK_TITLE_FG QColor(255, 255, 255)
-
-//#define COLOR_SPLITTER_BG QColor(240, 255, 235)
 #define COLOR_SPLITTER_BG QColor(200, 200, 200)
 #define COLOR_SPLITTER_DECO_BG COLOR_DOCK_TITLE_BG
-
-#define COLOR_HEADER QColor(190, 220, 240)//                      196,229,189
 #define COLOR_PALETTE_ALTENATE_BASE QColor(235, 235, 235)
-
-//#define COLOR_TITLEBAR_BG COLOR_DOCK_TITLE_BG
-//#define COLOR_TITLEBAR_DISABLED_BG QColor()
 
 
 //#include <QVariant>

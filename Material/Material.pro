@@ -6,6 +6,13 @@
 
 QT       += core gui widgets
 
+#para compilar el estilo descomentar el DEFINES para la identidad correspondiente (por defecto xilema)
+#DEFINES += xedro
+#DEFINES += xabal
+#DEFINES += xauce
+#DEFINES += xavia
+#DEFINES += xilema
+
 TARGET = Material
 TEMPLATE = lib
 CONFIG += plugin
@@ -21,7 +28,12 @@ HEADERS += material_style_plugin.h \
     material_style.h \
     constants.h \
     style_animation.h \
-    progress_style_animation.h
+    progress_style_animation.h \
+    constants_xilema.h \
+    constants_xabal.h \
+    constants_xauce.h \
+    constants_xedro.h \
+    constants_xavia.h
 OTHER_FILES += Material.json \
     status.txt
 
