@@ -28,8 +28,6 @@ class QStyleOptionGroupBox;
 class QStyleOptionSlider;
 class StyleAnimation;
 
-
-
 class MaterialStyle : public QCommonStyle
 {
     Q_OBJECT
@@ -72,6 +70,8 @@ private:
     QPointF calcRadialPos(const QStyleOptionSlider *dial, qreal offset) const;
     void drawMdiButton(QStyle::SubControl sc, QPainter *painter, const QColor &fg, const QColor &bgColor,
                        const QRect &rect, bool hover, bool sunken) const;
+    QPixmap colorizedImage(const QPixmap &pixmap, const QColor &color) const;
+    inline int qt_div_255(int x) const { return (x + (x>>8) + 0x80) >> 8; }
 
     QFont groupBoxFont;
     QFont regularFont;

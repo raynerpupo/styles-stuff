@@ -34,6 +34,7 @@
 #include <QTableWidget>
 #include <QLayout>
 #include <QPixmap>
+#include <QPixmapCache>
 #include <qmath.h>
 #include <QtMath>
 
@@ -327,7 +328,7 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
 //        bool isFlat = false;
         bool hover = option->state & State_MouseOver;
         bool isDown = (option->state & State_Sunken) || (option->state & State_On);
-        bool autoRaise = option->state & State_AutoRaise;
+//        bool autoRaise = option->state & State_AutoRaise;
         QRect r = option->rect;
 
         if (const QStyleOptionButton *button = qstyleoption_cast<const QStyleOptionButton*>(option)) {
@@ -336,7 +337,7 @@ void MaterialStyle::drawPrimitive(QStyle::PrimitiveElement elem, const QStyleOpt
         if (isDown) {
             painter->setBrush(COLOR_COMBOBOX_SUNKEN);
         }
-        else if (hover || !autoRaise){
+        else if (hover/* || !autoRaise*/){
             painter->setBrush(option->palette.window());
         }
         else break;
@@ -2109,6 +2110,11 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
                 bool sunken = (titleBar->activeSubControls & SC_TitleBarSysMenu) && (titleBar->state & State_Sunken);
                 if (iconRect.isValid()) {
                     drawMdiButton(SC_TitleBarSysMenu, painter, fgColor, fgColor.lighter(250), iconRect, hover, sunken);
+                    if (!titleBar->icon.isNull()) {
+                        titleBar->icon.paint(painter, iconRect);
+                    } else {
+                        drawMdiButton(SC_TitleBarSysMenu, painter, fgColor, fgColor.lighter(250), iconRect, hover, sunken);
+                    }
                 }
             }
 
@@ -2852,21 +2858,22 @@ QRect MaterialStyle::subElementRect(QStyle::SubElement subElem, const QStyleOpti
     case SE_ProgressBarContents:
     case SE_ProgressBarGroove:
         return opt->rect;
-//    case SE_DockWidgetTitleBarText: {
-//        if (const QStyleOptionDockWidget *titlebar = qstyleoption_cast<const QStyleOptionDockWidget*>(opt)) {
-//            bool verticalTitleBar = titlebar->verticalTitleBar;
-//            if (verticalTitleBar) {
-//                r.adjust(0, 0, 0, -4);
-//            } else {
-//                if (opt->direction == Qt::LeftToRight)
-//                    r.adjust(4, 0, 0, 0);
-//                else
-//                    r.adjust(0, 0, -4, 0);
-//            }
-//        }
+    case SE_DockWidgetTitleBarText: {
+        if (const QStyleOptionDockWidget *titlebar = qstyleoption_cast<const QStyleOptionDockWidget*>(opt)) {
+            r = QCommonStyle::subElementRect(subElem, opt, widget);
+            bool verticalTitleBar = titlebar->verticalTitleBar;
+            if (verticalTitleBar) {
+                r.adjust(0, 0, 0, -4);
+            } else {
+                if (opt->direction == Qt::LeftToRight)
+                    r.adjust(4, 0, 0, 0);
+                else
+                    r.adjust(0, 0, -4, 0);
+            }
+        }
 
-//        break;
-//    }
+        break;
+    }
     default:
         return QCommonStyle::subElementRect(subElem, opt, widget);
     }
@@ -3277,12 +3284,20 @@ void MaterialStyle::drawPushButton(const QStyleOptionButton *btn, QPainter *pain
 {
     Q_UNUSED(widget)
     painter->save();
-    painter->setRenderHint(QPainter::Antialiasing);
-    painter->translate(0.5, 0.5);
+//    painter->setRenderHint(QPainter::Antialiasing);
+//    painter->translate(0.5, 0.5);
+    //option.features |= QStyleOptionButton::CommandLinkButton;
+    if (btn->features & QStyleOptionButton::CommandLinkButton) {
+        drawPrimitive(PE_PanelButtonCommand, btn, painter, widget);
+        painter->restore();
+        return;
+//        explota;
+    }
     //Draw the background
     bool drawGlowLine = true;
+    prepareSmothPainter(painter);
     painter->setPen(QPen(Qt::black, 1));
-    int focusSize = pixelMetric(PM_FocusFrameHMargin, btn, widget);
+//    int focusSize = pixelMetric(PM_FocusFrameHMargin, btn, widget);
     QRect btnRect = btn->rect/*.adjusted(focusSize, focusSize, -focusSize, -focusSize)*/;
     QColor textColor;
     QColor textShadowColor;
@@ -3663,6 +3678,23 @@ QPointF MaterialStyle::calcRadialPos(const QStyleOptionSlider *dial, qreal offse
     return pos;
 }
 
+
+static const char * const titlebar_context_help[] = {
+    "10 10 3 1",
+    "  c None",
+    "# c #000000aa",
+    "+ c #444444",
+    "  +####+  ",
+    " ###  ### ",
+    " ##    ## ",
+    "     +##+ ",
+    "    +##   ",
+    "    ##    ",
+    "    ##    ",
+    "          ",
+    "    ##    ",
+    "    ##    "};
+
 void MaterialStyle::drawMdiButton(QStyle::SubControl sc, QPainter *painter, const QColor &fg, const QColor &bgColor, const QRect &rect, bool hover, bool sunken) const
 {
     painter->save();
@@ -3678,7 +3710,7 @@ void MaterialStyle::drawMdiButton(QStyle::SubControl sc, QPainter *painter, cons
 
     QRect cRect = rect.adjusted(4, 4, -4, -4);
     painter->translate(-0.5, -0.5);
-    painter->fillRect(cRect, QColor(255, 0, 0, 100));
+//    painter->fillRect(cRect, QColor(255, 0, 0, 100));
     switch (sc) {
     case SC_TitleBarMinButton:
         painter->setPen(QPen(fg, 2));
@@ -3705,8 +3737,29 @@ void MaterialStyle::drawMdiButton(QStyle::SubControl sc, QPainter *painter, cons
         painter->drawRect(bottomRect);
     }
         break;
-    case SC_TitleBarContextHelpButton:
-        explosion;
+    case SC_TitleBarContextHelpButton: {
+        QString reqPx = QString("%1%2").arg(QStringLiteral("TitleBarContextHelpButton")).arg(fg.rgba());
+        QPixmap px;
+        if (!QPixmapCache::find(reqPx, &px)) {
+            px = QPixmap((const char **)titlebar_context_help);
+            px = colorizedImage(px, fg);
+            QPixmapCache::insert(reqPx, px);
+        }
+        painter->drawPixmap(cRect.topLeft(), px);
+    }
+        break;
+    case SC_TitleBarShadeButton:
+        drawArrow(painter, Qt::UpArrow, fg, cRect);
+        break;
+    case SC_TitleBarUnshadeButton:
+        drawArrow(painter, Qt::DownArrow, fg, cRect);
+        break;
+    case SC_TitleBarSysMenu: {
+        painter->setPen(QPen(fg, 2));
+        painter->drawLine(cRect.left() + 1, cRect.top() + 1, cRect.right(), cRect.top() + 1);
+        painter->drawLine(cRect.left() + 1, cRect.top() + cRect.height() / 2, cRect.right(), cRect.top() + cRect.height() / 2);
+        painter->drawLine(cRect.left() + 1, cRect.bottom(), cRect.right(), cRect.bottom());
+    }
         break;
     default:
         break;
@@ -3714,23 +3767,53 @@ void MaterialStyle::drawMdiButton(QStyle::SubControl sc, QPainter *painter, cons
     painter->restore();
 }
 
+QPixmap MaterialStyle::colorizedImage(const QPixmap &pixm, const QColor &color) const
+{
+    QPixmap pixmap;
+
+    QImage image(pixm.toImage());
+
+    if (image.format() != QImage::Format_ARGB32_Premultiplied)
+        image = image.convertToFormat( QImage::Format_ARGB32_Premultiplied);
+
+    int width = image.width();
+    int height = image.height();
+    int source = color.rgba();
+
+//    unsigned char sourceRed = qRed(source);
+//    unsigned char sourceGreen = qGreen(source);
+//    unsigned char sourceBlue = qBlue(source);
+
+    for (int y = 0; y < height; ++y)
+    {
+        QRgb *data = (QRgb*) image.scanLine(y);
+        for (int x = 0 ; x < width ; x++) {
+            QRgb col = data[x];
+//            unsigned int colorDiff = (qBlue(col) - qRed(col));
+//            unsigned char gray = qGreen(col);
+//            unsigned char red = gray + qt_div_255(sourceRed * colorDiff);
+//            unsigned char green = gray + qt_div_255(sourceGreen * colorDiff);
+//            unsigned char blue = gray + qt_div_255(sourceBlue * colorDiff);
+            unsigned char alpha = qt_div_255(qAlpha(col) * qAlpha(source));
+            unsigned char red = qRed(color.rgb());
+            unsigned char green = qGreen(color.rgb());
+            unsigned char blue = qBlue(color.rgb());
+//            unsigned char green = color.green();
+//            unsigned char blue = color.blue();
+//            unsigned char alpha = 0;//qAlpha(col);
+            if (qRed(col) == 0 && qGreen(col) == 0 && qBlue(col) == 0 && qAlpha(col) == 0) {
+                red = green = blue = 0;
+            }
+//            qDebug() << red << green << blue << alpha << "---" << qRed(col) << qGreen(col) << qBlue(col) << qAlpha(col);
+            data[x] = qRgba(red, green, blue, alpha);
+        }
+    }
+    pixmap = QPixmap::fromImage(image);
+    return pixmap;
+}
+
 QPixmap MaterialStyle::testPxFactory(const QString &pxName) const
 {
 //    return "";
 }
 
-static const char * const qt_titlebar_context_help[] = {
-    "10 10 3 1",
-    "  c None",
-    "# c #000000",
-    "+ c #444444",
-    "  +####+  ",
-    " ###  ### ",
-    " ##    ## ",
-    "     +##+ ",
-    "    +##   ",
-    "    ##    ",
-    "    ##    ",
-    "          ",
-    "    ##    ",
-    "    ##    "};
