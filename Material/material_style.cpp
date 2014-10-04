@@ -621,7 +621,10 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
             QRect iconRect;
             tabLayout(&tabV2, widget, &tr, &iconRect);
             tr = subElementRect(SE_TabBarTabText, option, widget); //we compute tr twice because the style may override subElementRect
-
+#if QT_VERSION < 0x050300
+            //fix space on Qt versions lower than 5.3
+            tr.adjust(-5, 0, 5, 0);
+#endif
             if (!tabV2.icon.isNull()) {
                 QPixmap tabIcon = tabV2.icon.pixmap(tabV2.iconSize,
                                                     (tabV2.state & State_Enabled) ? QIcon::Normal
@@ -1502,20 +1505,20 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
                 editOption.state &= ~State_MouseOver;
             }
             proxy()->drawPrimitive(PE_FrameLineEdit, &editOption, painter, widget);
-            prepareSmothPainter(painter, false);
+            prepareSmothPainter(painter);
             QColor btnBg = hover ? COLOR_COMBOBOX_HOVER : option->palette.window().color();
             painter->setPen(Qt::NoPen);
             painter->save();
             painter->translate(-0.5, -0.5);
             painter->setBrush((upIsActive && sunken) ? COLOR_COMBOBOX_SUNKEN : btnBg);
             painter->setClipRect(upRect.adjusted(1, 0, 1, 0));
-            painter->drawRoundedRect(upRect.adjusted(-4, 1, 1, 4), 4, 4);
+            painter->drawRoundedRect(upRect.adjusted(-4, 0, 0, 4), 4, 4);
             painter->restore();
             painter->save();
             painter->translate(-0.5, -0.5);
             painter->setBrush((downIsActive && sunken) ? COLOR_COMBOBOX_SUNKEN : btnBg);
             painter->setClipRect(downRect.adjusted(1, 0, 1, 1));
-            painter->drawRoundedRect(downRect.adjusted(-4, -4, 1, 1), 4, 4);
+            painter->drawRoundedRect(downRect.adjusted(-4, -4, 0, 1), 4, 4);
             painter->restore();
             painter->setPen(COLOR_FRAME_BORDER);
             painter->drawLine(upRect.left() + 1, 1, downRect.left() + 1, spinBox->rect.bottom());
