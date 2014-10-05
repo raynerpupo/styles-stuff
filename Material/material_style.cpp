@@ -1111,7 +1111,11 @@ void MaterialStyle::drawControl(QStyle::ControlElement ce, const QStyleOption *o
             QPixmap pm = tb->icon.pixmap(proxy()->pixelMetric(QStyle::PM_SmallIconSize, tb, widget),
                                          enabled ? QIcon::Normal : QIcon::Disabled);
             if (pm.isNull()) {
-                pm = generatedIconPixmap(selected ? QIcon::Normal : QIcon::Disabled, pm, tb);
+                QString key = QString("generated_toolbox_icon_%1").arg(selected ? "normal" : "disabled");
+                if (!QPixmapCache::find(key, &pm)) {
+                    pm = generatedIconPixmap(selected ? QIcon::Normal : QIcon::Disabled, pm, tb);
+                    QPixmapCache::insert(key, pm);
+                }
             }
             QRect cr = subElementRect(QStyle::SE_ToolBoxTabContents, tb, widget);
             QRect tr, ir;
@@ -1629,7 +1633,7 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
             QString title = painter->fontMetrics().elidedText(titleBar->text, Qt::ElideRight, textRect.width() - 14);
             painter->drawText(textRect.adjusted(1, 1, 1, 1), title, QTextOption(Qt::AlignLeft | Qt::AlignVCenter));
             QRect actTextRect = painter->fontMetrics().boundingRect(title);
-            actTextRect.moveLeft(textRect.left() + 1);
+            actTextRect.moveLeft(textRect.left() + 3);
             //draw the text decoration
             QRect rect = option->rect;
             painter->setPen(QPen(COLOR_TAB_NORMAL_UL, 2));
@@ -2340,7 +2344,15 @@ QPixmap MaterialStyle::standardPixmap(QStyle::StandardPixmap sp, const QStyleOpt
         indRect.moveCenter(imgRect.center());
         painter.save();
         prepareSmothPainter(&painter);
-        painter.setPen(QPen(COLOR_DOCK_TITLE_FG, 2));
+        QColor pColor = COLOR_DOCK_TITLE_FG;
+        if (!option) {
+            pColor = COLOR_PALETTE_BUTTON_TEXT;
+        }
+//        if (const QStyleOptionDockWidget *dw = qstyleoption_cast<const QStyleOptionDockWidget *>(option)) {
+//            qDebug() << "sip";
+////            if (dw->)
+//        }
+        painter.setPen(QPen(pColor, 2));
         painter.drawLine(indRect.left() - 1, indRect.top() - 1, indRect.right() + 1, indRect.bottom() + 1);
         painter.drawLine(indRect.right() + 1, indRect.top() - 1, indRect.left() - 1, indRect.bottom() + 1);
         painter.restore();
@@ -2356,11 +2368,15 @@ QPixmap MaterialStyle::standardPixmap(QStyle::StandardPixmap sp, const QStyleOpt
         indRect.moveCenter(imgRect.center());
         painter.save();
         prepareSmothPainter(&painter);
-        painter.setPen(QPen(COLOR_DOCK_TITLE_FG, 1));
+        QColor pColor = COLOR_DOCK_TITLE_FG;
+        if (!option) {
+            pColor = COLOR_PALETTE_BUTTON_TEXT;
+        }
+        painter.setPen(QPen(pColor, 1));
         QRect topRect(sz / 2 - 1, sz / 5 - 1, sz / 2, sz / 2);
         QRect bottomRect(sz / 5 - 1, sz / 2 - 1, sz / 2, sz / 2);
         painter.drawRect(topRect);
-        painter.setBrush(COLOR_DOCK_TITLE_FG);
+        painter.setBrush(pColor);
         painter.drawRect(bottomRect);
         painter.restore();
         return QPixmap::fromImage(img);
