@@ -10,7 +10,7 @@ QT       += core gui widgets
 #DEFINES += xedro
 #DEFINES += xabal
 #DEFINES += xauce
-#DEFINES += xavia
+DEFINES += xavia
 #DEFINES += xilema
 
 TARGET = Material

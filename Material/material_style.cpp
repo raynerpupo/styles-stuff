@@ -1522,7 +1522,7 @@ void MaterialStyle::drawComplexControl(QStyle::ComplexControl control, const QSt
             painter->translate(-0.5, -0.5);
             painter->setBrush((downIsActive && sunken) ? COLOR_COMBOBOX_SUNKEN : btnBg);
             painter->setClipRect(downRect.adjusted(1, 0, 1, 1));
-            painter->drawRoundedRect(downRect.adjusted(-4, -4, 0, 1), 4, 4);
+            painter->drawRoundedRect(downRect.adjusted(-4, -4, 0, 0), 4, 4);
             painter->restore();
             painter->setPen(COLOR_FRAME_BORDER);
             painter->drawLine(upRect.left() + 1, 1, downRect.left() + 1, spinBox->rect.bottom());
