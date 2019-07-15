@@ -1,10 +1,9 @@
-styles-stuff
-============
+## styles-stuff
 
 Set of Qt/C++ styles.
 
-Uso
-===
+### Usage
+
 This is a style plugin, to install it:
 
 1- Choose the color schema by editing the Material.pro file and setting the DEFINES to one of the following
